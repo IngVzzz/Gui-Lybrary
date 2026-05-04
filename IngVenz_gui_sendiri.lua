@@ -1134,61 +1134,47 @@ end
 
 LocalPlayer.CharacterAdded:Connect(onCharacterAddedWalkSpeed)
 
--- ==================== NOCLIP ====================
+-- ==================== NOCLIP (NEW SCRIPT) ====================
 local noClipActive = false
 local noClipChar = nil
-local noClipRootPart = nil
 
-local function getNoClipCharacter()
+local function updateNoclip()
     noClipChar = LocalPlayer.Character
-    if not noClipChar then return false end
-    noClipRootPart = noClipChar:FindFirstChild("HumanoidRootPart")
-    return (noClipRootPart ~= nil)
-end
-
-local function enableNoClip()
-    if noClipActive then return end
-    if not getNoClipCharacter() then return end
+    if not noClipChar then return end
     
-    noClipActive = true
-    
-    pcall(function()
-        noClipRootPart.CanCollide = false
-        for _, part in pairs(noClipChar:GetDescendants()) do
+    if noClipActive then
+        for _, part in ipairs(noClipChar:GetDescendants()) do
             if part:IsA("BasePart") then
                 part.CanCollide = false
             end
         end
-    end)
+    else
+        for _, part in ipairs(noClipChar:GetDescendants()) do
+            if part:IsA("BasePart") and part.Name ~= "HumanoidRootPart" then
+                part.CanCollide = true
+            end
+        end
+    end
+end
+
+local function enableNoClip()
+    if noClipActive then return end
+    noClipActive = true
+    updateNoclip()
 end
 
 local function disableNoClip()
     if not noClipActive then return end
-    if not getNoClipCharacter() then return end
-    
     noClipActive = false
-    
-    pcall(function()
-        noClipRootPart.CanCollide = true
-        for _, part in pairs(noClipChar:GetDescendants()) do
-            if part:IsA("BasePart") then
-                part.CanCollide = true
-            end
-        end
-    end)
+    updateNoclip()
 end
 
-local function onCharacterAddedNoClip(newChar)
-    noClipChar = newChar
+local function onCharacterAddedNoClip()
     task.wait(0.3)
-    getNoClipCharacter()
-    if noClipActive then
-        enableNoClip()
-    end
+    updateNoclip()
 end
 
 LocalPlayer.CharacterAdded:Connect(onCharacterAddedNoClip)
-getNoClipCharacter()
 
 -- ==================== FRAME UTAMA ====================
 local mainFrame = Instance.new("Frame")
