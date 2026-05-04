@@ -20,7 +20,7 @@ function Library:Init(title, subtitle)
 
     -- TOMBOL BUKA/TUTUP FRAME (0, 255, 255) - CYAN
     self.ToggleButton = Instance.new("ImageButton")
-    self.ToggleButton.Size = UDim2.new(0, 60, 0, 60)
+    self.ToggleButton.Size = UDim2.new(0, 45, 0, 45)
     self.ToggleButton.Position = UDim2.new(1, -80, 0.5, -30)
     self.ToggleButton.BackgroundColor3 = Color3.fromRGB(0, 255, 255)
     self.ToggleButton.BackgroundTransparency = 0.15
