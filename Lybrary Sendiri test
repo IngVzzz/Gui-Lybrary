@@ -1,4 +1,4 @@
--- BITWISE HUB - CORE LIBRARY (LENGKAP: TOGGLE + SLIDER)
+-- BITWISE HUB - CORE LIBRARY (WARNA CUSTOM)
 local UserInputService = game:GetService("UserInputService")
 local CoreGui = game:GetService("CoreGui")
 
@@ -17,25 +17,26 @@ function Library:Init(title, subtitle)
     self.ScreenGui.Name = "BitwiseHub"
     self.ScreenGui.Parent = CoreGui
     self.ScreenGui.ResetOnSpawn = false
-    
+
+    -- TOMBOL BUKA/TUTUP FRAME (0, 255, 255) - CYAN
     self.ToggleButton = Instance.new("ImageButton")
     self.ToggleButton.Size = UDim2.new(0, 60, 0, 60)
     self.ToggleButton.Position = UDim2.new(1, -80, 0.5, -30)
-    self.ToggleButton.BackgroundColor3 = Color3.fromRGB(255, 50, 100)
+    self.ToggleButton.BackgroundColor3 = Color3.fromRGB(0, 255, 255)
     self.ToggleButton.BackgroundTransparency = 0.15
     self.ToggleButton.Image = "rbxassetid://3926305904"
     self.ToggleButton.ScaleType = Enum.ScaleType.Fit
     self.ToggleButton.Parent = self.ScreenGui
-    
+
     local btnCorner = Instance.new("UICorner")
     btnCorner.CornerRadius = UDim.new(0, 12)
     btnCorner.Parent = self.ToggleButton
-    
+
     local dragging = false
     local dragStart = nil
     local startPos = nil
     local isDragging = false
-    
+
     self.ToggleButton.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
             dragging = true
@@ -44,7 +45,7 @@ function Library:Init(title, subtitle)
             startPos = self.ToggleButton.Position
         end
     end)
-    
+
     self.ToggleButton.InputChanged:Connect(function(input)
         if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
             local delta = input.Position - dragStart
@@ -54,13 +55,13 @@ function Library:Init(title, subtitle)
             self.ToggleButton.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
         end
     end)
-    
+
     self.ToggleButton.InputEnded:Connect(function()
         dragging = false
         task.wait(0.05)
         isDragging = false
     end)
-    
+
     self.MainFrame = Instance.new("Frame")
     self.MainFrame.Size = UDim2.new(0, 450, 0, 500)
     self.MainFrame.Position = UDim2.new(0.5, -225, 0.5, -250)
@@ -69,28 +70,29 @@ function Library:Init(title, subtitle)
     self.MainFrame.BorderSizePixel = 0
     self.MainFrame.Visible = false
     self.MainFrame.Parent = self.ScreenGui
-    
+
     local corner = Instance.new("UICorner")
     corner.CornerRadius = UDim.new(0, 12)
     corner.Parent = self.MainFrame
-    
+
+    -- BORDER FRAME (0, 0, 255) - BIRU
     local stroke = Instance.new("UIStroke")
-    stroke.Color = Color3.fromRGB(255, 50, 100)
+    stroke.Color = Color3.fromRGB(0, 0, 255)
     stroke.Thickness = 2
     stroke.Transparency = 0.5
     stroke.Parent = self.MainFrame
-    
+
     local headerFrame = Instance.new("Frame")
     headerFrame.Size = UDim2.new(1, 0, 0, 50)
     headerFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
     headerFrame.BackgroundTransparency = 0.3
     headerFrame.BorderSizePixel = 0
     headerFrame.Parent = self.MainFrame
-    
+
     local headerCorner = Instance.new("UICorner")
     headerCorner.CornerRadius = UDim.new(0, 12)
     headerCorner.Parent = headerFrame
-    
+
     local titleLabel = Instance.new("TextLabel")
     titleLabel.Size = UDim2.new(1, 0, 1, 0)
     titleLabel.BackgroundTransparency = 1
@@ -101,7 +103,7 @@ function Library:Init(title, subtitle)
     titleLabel.TextXAlignment = Enum.TextXAlignment.Left
     titleLabel.Position = UDim2.new(0, 15, 0, 0)
     titleLabel.Parent = headerFrame
-    
+
     local subtitleLabel = Instance.new("TextLabel")
     subtitleLabel.Size = UDim2.new(1, 0, 0, 20)
     subtitleLabel.Position = UDim2.new(0, 15, 0, 30)
@@ -112,11 +114,11 @@ function Library:Init(title, subtitle)
     subtitleLabel.TextSize = 12
     subtitleLabel.TextXAlignment = Enum.TextXAlignment.Left
     subtitleLabel.Parent = headerFrame
-    
+
     local draggingFrame = false
     local dragFrameStart = nil
     local frameStartPos = nil
-    
+
     headerFrame.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
             draggingFrame = true
@@ -124,18 +126,18 @@ function Library:Init(title, subtitle)
             frameStartPos = self.MainFrame.Position
         end
     end)
-    
+
     headerFrame.InputEnded:Connect(function()
         draggingFrame = false
     end)
-    
+
     UserInputService.InputChanged:Connect(function(input)
         if draggingFrame and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
             local delta = input.Position - dragFrameStart
             self.MainFrame.Position = UDim2.new(frameStartPos.X.Scale, frameStartPos.X.Offset + delta.X, frameStartPos.Y.Scale, frameStartPos.Y.Offset + delta.Y)
         end
     end)
-    
+
     local leftMenu = Instance.new("Frame")
     leftMenu.Size = UDim2.new(0, 110, 1, -50)
     leftMenu.Position = UDim2.new(0, 0, 0, 50)
@@ -143,22 +145,22 @@ function Library:Init(title, subtitle)
     leftMenu.BackgroundTransparency = 0.5
     leftMenu.BorderSizePixel = 0
     leftMenu.Parent = self.MainFrame
-    
+
     self.RightContent = Instance.new("Frame")
     self.RightContent.Size = UDim2.new(1, -120, 1, -50)
     self.RightContent.Position = UDim2.new(0, 120, 0, 50)
     self.RightContent.BackgroundTransparency = 1
     self.RightContent.Parent = self.MainFrame
-    
+
     self.LeftMenu = leftMenu
-    
+
     self.ToggleButton.MouseButton1Click:Connect(function()
         if isDragging then return end
         self.GuiVisible = not self.GuiVisible
         self.MainFrame.Visible = self.GuiVisible
         self.ToggleButton.Image = self.GuiVisible and "rbxassetid://6023426914" or "rbxassetid://3926305904"
     end)
-    
+
     return self
 end
 
@@ -174,11 +176,11 @@ function Library:CreateTab(tabName)
     btn.TextSize = 12
     btn.BorderSizePixel = 0
     btn.Parent = self.LeftMenu
-    
+
     local btnCorner = Instance.new("UICorner")
     btnCorner.CornerRadius = UDim.new(0, 0)
     btnCorner.Parent = btn
-    
+
     local tabData = {
         Name = tabName,
         Button = btn,
@@ -186,7 +188,8 @@ function Library:CreateTab(tabName)
     }
     table.insert(self.Tabs, tabData)
     self.TabButtons[tabName] = btn
-    
+
+    -- WARNA TAB AKTIF (0, 0, 128) - BIRU TUA
     tabData.Select = function()
         for _, t in pairs(self.Tabs) do
             t.Button.BackgroundColor3 = Color3.fromRGB(35, 35, 40)
@@ -195,14 +198,14 @@ function Library:CreateTab(tabName)
                 t.Content.Visible = false
             end
         end
-        btn.BackgroundColor3 = Color3.fromRGB(255, 50, 100)
+        btn.BackgroundColor3 = Color3.fromRGB(0, 0, 128)
         btn.TextColor3 = Color3.fromRGB(255, 255, 255)
         if tabData.Content then
             tabData.Content.Visible = true
         end
         self.CurrentTab = tabData
     end
-    
+
     local contentFrame = Instance.new("ScrollingFrame")
     contentFrame.Size = UDim2.new(1, 0, 1, 0)
     contentFrame.BackgroundTransparency = 1
@@ -211,19 +214,19 @@ function Library:CreateTab(tabName)
     contentFrame.ScrollBarThickness = 2
     contentFrame.Visible = false
     contentFrame.Parent = self.RightContent
-    
+
     local layout = Instance.new("UIListLayout")
     layout.Parent = contentFrame
     layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
     layout.SortOrder = Enum.SortOrder.LayoutOrder
     layout.Padding = UDim.new(0, 5)
-    
+
     tabData.Content = contentFrame
-    
+
     btn.MouseButton1Click:Connect(function()
         tabData.Select()
     end)
-    
+
     return {
         Content = contentFrame,
         AddDivider = function(self, text)
@@ -231,7 +234,8 @@ function Library:CreateTab(tabName)
             divider.Size = UDim2.new(1, -20, 0, 35)
             divider.BackgroundTransparency = 1
             divider.Text = text
-            divider.TextColor3 = Color3.fromRGB(200, 200, 200)
+            -- WARNA DIVIDER (30, 144, 255) - DODGER BLUE
+            divider.TextColor3 = Color3.fromRGB(30, 144, 255)
             divider.Font = Enum.Font.GothamBold
             divider.TextSize = 14
             divider.TextXAlignment = Enum.TextXAlignment.Left
@@ -242,7 +246,7 @@ function Library:CreateTab(tabName)
             frame.Size = UDim2.new(1, -20, 0, 35)
             frame.BackgroundTransparency = 1
             frame.Parent = contentFrame
-            
+
             local label = Instance.new("TextLabel")
             label.Size = UDim2.new(0, 180, 1, 0)
             label.BackgroundTransparency = 1
@@ -252,28 +256,28 @@ function Library:CreateTab(tabName)
             label.TextSize = 13
             label.TextXAlignment = Enum.TextXAlignment.Left
             label.Parent = frame
-            
+
             local toggleBtn = Instance.new("TextButton")
             toggleBtn.Size = UDim2.new(0, 50, 0, 24)
             toggleBtn.Position = UDim2.new(1, -60, 0.5, -12)
-            toggleBtn.BackgroundColor3 = defaultValue and Color3.fromRGB(255, 50, 100) or Color3.fromRGB(60, 60, 70)
+            toggleBtn.BackgroundColor3 = defaultValue and Color3.fromRGB(0, 200, 0) or Color3.fromRGB(60, 60, 70)
             toggleBtn.Text = defaultValue and "ON" or "OFF"
             toggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
             toggleBtn.Font = Enum.Font.GothamBold
             toggleBtn.TextSize = 11
             toggleBtn.BorderSizePixel = 0
             toggleBtn.Parent = frame
-            
+
             local btnCorner = Instance.new("UICorner")
             btnCorner.CornerRadius = UDim.new(1, 0)
             btnCorner.Parent = toggleBtn
-            
+
             local state = defaultValue
             toggleBtn.MouseButton1Click:Connect(function()
                 state = not state
                 toggleBtn.Text = state and "ON" or "OFF"
-                toggleBtn.BackgroundColor3 = state and Color3.fromRGB(255, 50, 100) or Color3.fromRGB(60, 60, 70)
-                label.TextColor3 = state and Color3.fromRGB(255, 50, 100) or Color3.fromRGB(200, 200, 200)
+                toggleBtn.BackgroundColor3 = state and Color3.fromRGB(0, 200, 0) or Color3.fromRGB(60, 60, 70)
+                label.TextColor3 = state and Color3.fromRGB(0, 200, 0) or Color3.fromRGB(200, 200, 200)
                 if callback then callback(state) end
             end)
         end,
@@ -282,7 +286,7 @@ function Library:CreateTab(tabName)
             frame.Size = UDim2.new(1, -20, 0, 50)
             frame.BackgroundTransparency = 1
             frame.Parent = contentFrame
-            
+
             local label = Instance.new("TextLabel")
             label.Size = UDim2.new(1, 0, 0, 20)
             label.Position = UDim2.new(0, 0, 0, 0)
@@ -293,56 +297,56 @@ function Library:CreateTab(tabName)
             label.TextSize = 12
             label.TextXAlignment = Enum.TextXAlignment.Left
             label.Parent = frame
-            
+
             local sliderBg = Instance.new("Frame")
             sliderBg.Size = UDim2.new(1, -60, 0, 4)
             sliderBg.Position = UDim2.new(0, 0, 0, 25)
             sliderBg.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
             sliderBg.BorderSizePixel = 0
             sliderBg.Parent = frame
-            
+
             local sliderCorner = Instance.new("UICorner")
             sliderCorner.CornerRadius = UDim.new(0, 2)
             sliderCorner.Parent = sliderBg
-            
+
             local sliderFill = Instance.new("Frame")
             local percent = (defaultValue - minVal) / (maxVal - minVal)
             sliderFill.Size = UDim2.new(percent, 0, 1, 0)
-            sliderFill.BackgroundColor3 = Color3.fromRGB(255, 50, 100)
+            sliderFill.BackgroundColor3 = Color3.fromRGB(0, 200, 0)
             sliderFill.BorderSizePixel = 0
             sliderFill.Parent = sliderBg
-            
+
             local fillCorner = Instance.new("UICorner")
             fillCorner.CornerRadius = UDim.new(0, 2)
             fillCorner.Parent = sliderFill
-            
+
             local sliderButton = Instance.new("TextButton")
             sliderButton.Size = UDim2.new(0, 16, 0, 16)
             sliderButton.Position = UDim2.new(percent, -8, 0, -6)
-            sliderButton.BackgroundColor3 = Color3.fromRGB(255, 50, 100)
+            sliderButton.BackgroundColor3 = Color3.fromRGB(0, 200, 0)
             sliderButton.Text = ""
             sliderButton.BorderSizePixel = 0
             sliderButton.AutoButtonColor = false
             sliderButton.Parent = sliderBg
-            
+
             local buttonCorner = Instance.new("UICorner")
             buttonCorner.CornerRadius = UDim.new(1, 0)
             buttonCorner.Parent = sliderButton
-            
+
             local valueLabel = Instance.new("TextLabel")
             valueLabel.Size = UDim2.new(0, 50, 0, 25)
             valueLabel.Position = UDim2.new(1, -55, 0, 18)
             valueLabel.BackgroundTransparency = 1
             valueLabel.Text = tostring(defaultValue)
-            valueLabel.TextColor3 = Color3.fromRGB(255, 50, 100)
+            valueLabel.TextColor3 = Color3.fromRGB(0, 200, 0)
             valueLabel.Font = Enum.Font.GothamBold
             valueLabel.TextSize = 12
             valueLabel.TextXAlignment = Enum.TextXAlignment.Right
             valueLabel.Parent = frame
-            
+
             local currentValue = defaultValue
             local dragActive = false
-            
+
             local function updateSlider(input)
                 local relativeX = math.clamp((input.Position.X - sliderBg.AbsolutePosition.X) / sliderBg.AbsoluteSize.X, 0, 1)
                 sliderFill.Size = UDim2.new(relativeX, 0, 1, 0)
@@ -353,24 +357,24 @@ function Library:CreateTab(tabName)
                 label.Text = text .. ": " .. currentValue
                 if callback then callback(currentValue) end
             end
-            
+
             sliderButton.InputBegan:Connect(function(input)
                 if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
                     dragActive = true
                     updateSlider(input)
                 end
             end)
-            
+
             sliderButton.InputChanged:Connect(function(input)
                 if dragActive and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
                     updateSlider(input)
                 end
             end)
-            
+
             sliderButton.InputEnded:Connect(function()
                 dragActive = false
             end)
-            
+
             sliderBg.InputBegan:Connect(function(input)
                 if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
                     updateSlider(input)
