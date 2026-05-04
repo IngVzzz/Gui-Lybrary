@@ -1,83 +1,82 @@
-local UserInputService = game:GetService("UserInputService")
-local CoreGui = game:GetService("CoreGui")
+local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/IngVzzz/Gui-Lybrary/refs/heads/main/Lybrary%20Sendiri%20test"))()
+
+local window = Library:Init("VIOLENCE DISTRICT [VIP]", "Depeloper-X | IngVzz")
+
+-- ==================== GLOBAL VARIABLES ====================
+_G.DisableSkillCheck = false
+_G.ESP_Player = false
+_G.Moonwalk = false
+_G.Croushair = false
+_G.BypassZoom = false
+_G.Aimbot = false
+_G.Hitbox = false
+_G.Walkspeed = false
+_G.WalkspeedValue = 50
+_G.Noclip = false
+
+-- ==================== DISABLE SKILLCHECK SCRIPT ====================
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local RunService = game:GetService("RunService")
-local Camera = workspace.CurrentCamera
+local UserInputService = game:GetService("UserInputService")
+local CoreGui = game:GetService("CoreGui")
+local Workspace = game:GetService("Workspace")
 local UIS = game:GetService("UserInputService")
 
-local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "BitwiseHub"
-screenGui.Parent = CoreGui
-screenGui.ResetOnSpawn = false
+local isSkillCheckActive = false
+local skillCheckConnections = {}
 
--- ==================== STATE TOGGLE (TETAP INGAT POSISINYA) ====================
-_G.ToggleStates = {
-    -- SURVIVOR
-    DisableSkillCheck = false,
-    ESP_Player = false,
-    Moonwalk = false,
-    Croushair = false,
-    BypassZoom = false,
-    -- KILLER
-    Aimbot = false,
-    Hitbox = false,
-    -- MODS
-    Walkspeed = false,
-    WalkspeedValue = 50,
-    Noclip = false,
-}
-
--- ==================== TOMBOL KOTAK ====================
-local toggleButton = Instance.new("TextButton")
-toggleButton.Name = "ToggleButton"
-toggleButton.Size = UDim2.new(0, 45, 0, 45)
-toggleButton.Position = UDim2.new(1, -80, 0.5, -50)
-toggleButton.BackgroundColor3 = Color3.fromRGB(30, 144, 255)
-toggleButton.Text = "▶"
-toggleButton.TextColor3 = Color3.fromRGB(219, 15, 15)
-toggleButton.TextSize = 23
-toggleButton.Font = Enum.Font.GothamBold
-toggleButton.BorderSizePixel = 0
-toggleButton.Parent = screenGui
-
-local toggleCorner = Instance.new("UICorner")
-toggleCorner.CornerRadius = UDim.new(0, 12)
-toggleCorner.Parent = toggleButton
-
--- Drag toggle button
-local dragging = false
-local dragStart = nil
-local startPos = nil
-local isDragging = false
-
-toggleButton.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        dragging = true
-        isDragging = false
-        dragStart = input.Position
-        startPos = toggleButton.Position
+local function clearSkillCheckConnections()
+    for _, conn in pairs(skillCheckConnections) do
+        pcall(function() conn:Disconnect() end)
     end
-end)
+    skillCheckConnections = {}
+end
 
-toggleButton.InputChanged:Connect(function(input)
-    if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
-        local delta = input.Position - dragStart
-        if math.abs(delta.X) > 5 or math.abs(delta.Y) > 5 then
-            isDragging = true
+local function DestroyAllSkillChecks()
+    local Remotes = ReplicatedStorage:FindFirstChild("Remotes")
+    if not Remotes then return end
+    
+    for _, folderName in pairs({"Healing", "Generator"}) do
+        local folder = Remotes:FindFirstChild(folderName)
+        if folder then
+            local skillCheck = folder:FindFirstChild("SkillCheckEvent")
+            if skillCheck then
+                pcall(function() skillCheck:Destroy() end)
+            end
         end
-        toggleButton.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
     end
-end)
+end
 
-toggleButton.InputEnded:Connect(function()
-    dragging = false
-    task.wait(0.05)
-    isDragging = false
-end)
+local function StartSkillCheck()
+    if isSkillCheckActive then return end
+    isSkillCheckActive = true
+    DestroyAllSkillChecks()
+    
+    local remotes = ReplicatedStorage:FindFirstChild("Remotes")
+    if remotes then
+        for _, folderName in pairs({"Healing", "Generator"}) do
+            local folder = remotes:FindFirstChild(folderName)
+            if folder then
+                local conn = folder.ChildAdded:Connect(function(child)
+                    if child.Name == "SkillCheckEvent" and isSkillCheckActive then
+                        pcall(function() child:Destroy() end)
+                    end
+                end)
+                table.insert(skillCheckConnections, conn)
+            end
+        end
+    end
+end
 
--- ==================== ESP PLAYER ====================
+local function StopSkillCheck()
+    if not isSkillCheckActive then return end
+    isSkillCheckActive = false
+    clearSkillCheckConnections()
+end
+
+-- ==================== ESP PLAYER SCRIPT ====================
 local Hook = {
     Players = {
         ["Killer"] = {Color = Color3.fromRGB(255, 0, 0), On = true},
@@ -237,7 +236,7 @@ local function disableESP()
     clearAllESPConnections()
 end
 
--- ==================== MOONWALK ASLI ====================
+-- ==================== MOONWALK SCRIPT (ASLI) ====================
 local PlayersMW = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UIS = game:GetService("UserInputService")
@@ -460,7 +459,7 @@ function StopMoonwalkSystem()
     clearAllMoonwalkEvents()
 end
 
--- ==================== CROUSHAIR ====================
+-- ==================== CROUSHAIR SCRIPT ====================
 local croudhairActive = false
 local crosshairGui = nil
 local playerGui = LocalPlayer:WaitForChild("PlayerGui")
@@ -477,7 +476,7 @@ local function CreateCroushair()
     local dot = Instance.new("Frame")
     dot.Name = "Dot"
     dot.Size = UDim2.new(0, 5, 0, 5)
-    dot.Position = UDim2.new(0.49, 0, 0.53, 0)
+    dot.Position = UDim2.new(0.5, 0, 0.52, 0)
     dot.AnchorPoint = Vector2.new(0.5, 0.5)
     dot.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
     dot.BorderSizePixel = 0
@@ -507,7 +506,7 @@ local function StopCroushair()
     RemoveCroushair()
 end
 
--- ==================== BYPASS ZOOM ====================
+-- ==================== BYPASS ZOOM SCRIPT ====================
 local zoomActive = false
 local zoomLevel = 50
 local zoomSpeed = 3
@@ -601,60 +600,7 @@ local function StopZoom()
     disableZoom()
 end
 
--- ==================== DISABLE SKILLCHECK ====================
-local isSkillCheckActive = false
-local skillCheckConnections = {}
-
-local function clearSkillCheckConnections()
-    for _, conn in pairs(skillCheckConnections) do
-        safeDisconnect(conn)
-    end
-    skillCheckConnections = {}
-end
-
-local function DestroyAllSkillChecks()
-    local Remotes = ReplicatedStorage:FindFirstChild("Remotes")
-    if not Remotes then return end
-    
-    for _, folderName in pairs({"Healing", "Generator"}) do
-        local folder = Remotes:FindFirstChild(folderName)
-        if folder then
-            local skillCheck = folder:FindFirstChild("SkillCheckEvent")
-            if skillCheck then
-                pcall(function() skillCheck:Destroy() end)
-            end
-        end
-    end
-end
-
-local function StartSkillCheck()
-    if isSkillCheckActive then return end
-    isSkillCheckActive = true
-    DestroyAllSkillChecks()
-    
-    local remotes = ReplicatedStorage:FindFirstChild("Remotes")
-    if remotes then
-        for _, folderName in pairs({"Healing", "Generator"}) do
-            local folder = remotes:FindFirstChild(folderName)
-            if folder then
-                local conn = folder.ChildAdded:Connect(function(child)
-                    if child.Name == "SkillCheckEvent" and isSkillCheckActive then
-                        pcall(function() child:Destroy() end)
-                    end
-                end)
-                table.insert(skillCheckConnections, conn)
-            end
-        end
-    end
-end
-
-local function StopSkillCheck()
-    if not isSkillCheckActive then return end
-    isSkillCheckActive = false
-    clearSkillCheckConnections()
-end
-
--- ==================== AIMBOT ====================
+-- ==================== AIMBOT SCRIPT ====================
 local aimbotEnabled = false
 local currentTarget = nil
 local maxLockDistance = 35
@@ -916,9 +862,9 @@ local function StopAimbot()
     cleanAllEventsAimbot()
 end
 
--- ==================== HITBOX (TOGGLE ONLY, NO SLIDER) ====================
+-- ==================== HITBOX SCRIPT (NO SLIDER) ====================
 local hitboxActive = false
-local HITBOX_Size = 35
+local HITBOX_Size = 30
 local OriginalHitboxSizes = {}
 local hitboxConnections = {}
 local hitboxPlayerConns = {}
@@ -1068,7 +1014,7 @@ local function StopHitbox()
     clearHitboxConnections()
 end
 
--- ==================== WALKSPEED ====================
+-- ==================== WALKSPEED SCRIPT ====================
 local walkSpeedActive = false
 local targetSpeed = 50
 local walkSpeedConn = nil
@@ -1134,7 +1080,7 @@ end
 
 LocalPlayer.CharacterAdded:Connect(onCharacterAddedWalkSpeed)
 
--- ==================== NOCLIP (NEW SCRIPT) ====================
+-- ==================== NOCLIP SCRIPT ====================
 local noClipActive = false
 local noClipChar = nil
 
@@ -1176,435 +1122,117 @@ end
 
 LocalPlayer.CharacterAdded:Connect(onCharacterAddedNoClip)
 
--- ==================== FRAME UTAMA ====================
-local mainFrame = Instance.new("Frame")
-mainFrame.Name = "MainFrame"
-mainFrame.Size = UDim2.new(0, 420, 0, 450)
-mainFrame.Position = UDim2.new(0.5, -210, 0.5, -225)
-mainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
-mainFrame.BackgroundTransparency = 0.05
-mainFrame.BorderSizePixel = 0
-mainFrame.Visible = false
-mainFrame.Parent = screenGui
+-- ==================== TAB SURVIVOR ====================
+local survivorTab = window:CreateTab("SURVIVOR")
+survivorTab:AddDivider("SURVIVOR MODS")
 
-local corner = Instance.new("UICorner")
-corner.CornerRadius = UDim.new(0, 12)
-corner.Parent = mainFrame
-
-local stroke = Instance.new("UIStroke")
-stroke.Color = Color3.fromRGB(255, 50, 100)
-stroke.Thickness = 2
-stroke.Transparency = 0.5
-stroke.Parent = mainFrame
-
--- ==================== HEADER ====================
-local headerFrame = Instance.new("Frame")
-headerFrame.Size = UDim2.new(1, 0, 0, 45)
-headerFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
-headerFrame.BackgroundTransparency = 0.3
-headerFrame.BorderSizePixel = 0
-headerFrame.Parent = mainFrame
-
-local headerCorner = Instance.new("UICorner")
-headerCorner.CornerRadius = UDim.new(0, 12)
-headerCorner.Parent = headerFrame
-
-local title = Instance.new("TextLabel")
-title.Size = UDim2.new(1, 0, 1, 0)
-title.BackgroundTransparency = 1
-title.Text = "👑Violence District V.2.0 [VIP]👑"
-title.TextColor3 = Color3.fromRGB(255, 255, 255)
-title.Font = Enum.Font.GothamBold
-title.TextSize = 14
-title.TextXAlignment = Enum.TextXAlignment.Left
-title.Position = UDim2.new(0, 10, 0, 0)
-title.Parent = headerFrame
-
-local subtitle = Instance.new("TextLabel")
-subtitle.Size = UDim2.new(1, 0, 0, 18)
-subtitle.Position = UDim2.new(0, 10, 0, 24)
-subtitle.BackgroundTransparency = 1
-subtitle.Text = "Dev:IngVzz"
-subtitle.TextColor3 = Color3.fromRGB(255, 255, 255)
-subtitle.Font = Enum.Font.Gotham
-subtitle.TextSize = 11
-subtitle.TextXAlignment = Enum.TextXAlignment.Left
-subtitle.Parent = headerFrame
-
--- Drag frame
-local draggingFrame = false
-local dragFrameStart = nil
-local frameStartPos = nil
-
-headerFrame.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        draggingFrame = true
-        dragFrameStart = input.Position
-        frameStartPos = mainFrame.Position
-    end
-end)
-
-headerFrame.InputEnded:Connect(function()
-    draggingFrame = false
-end)
-
-UserInputService.InputChanged:Connect(function(input)
-    if draggingFrame and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
-        local delta = input.Position - dragFrameStart
-        mainFrame.Position = UDim2.new(frameStartPos.X.Scale, frameStartPos.X.Offset + delta.X, frameStartPos.Y.Scale, frameStartPos.Y.Offset + delta.Y)
-    end
-end)
-
--- ==================== TAB MENU KIRI ====================
-local leftMenu = Instance.new("Frame")
-leftMenu.Size = UDim2.new(0, 100, 1, -45)
-leftMenu.Position = UDim2.new(0, 0, 0, 45)
-leftMenu.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
-leftMenu.BackgroundTransparency = 0.5
-leftMenu.BorderSizePixel = 0
-leftMenu.Parent = mainFrame
-
-local menuCorner = Instance.new("UICorner")
-menuCorner.CornerRadius = UDim.new(0, 0)
-menuCorner.Parent = leftMenu
-
--- Daftar tab (TANPA CREDIT)
-local tabs = {"SURVIVOR", "KILLER", "MODS", "INFO"}
-local tabButtons = {}
-
-for i, tabName in ipairs(tabs) do
-    local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(1, 0, 0, 38)
-    btn.Position = UDim2.new(0, 0, 0, (i-1) * 38)
-    btn.BackgroundColor3 = Color3.fromRGB(35, 35, 40)
-    btn.BackgroundTransparency = 0.3
-    btn.Text = tabName
-    btn.TextColor3 = Color3.fromRGB(200, 200, 200)
-    btn.Font = Enum.Font.GothamBold
-    btn.TextSize = 11
-    btn.BorderSizePixel = 0
-    btn.Parent = leftMenu
-    
-    local btnCorner = Instance.new("UICorner")
-    btnCorner.CornerRadius = UDim.new(0, 0)
-    btnCorner.Parent = btn
-    
-    tabButtons[tabName] = btn
-end
-
--- ==================== KONTEN KANAN ====================
-local rightContent = Instance.new("Frame")
-rightContent.Size = UDim2.new(1, -110, 1, -45)
-rightContent.Position = UDim2.new(0, 110, 0, 45)
-rightContent.BackgroundTransparency = 1
-rightContent.Parent = mainFrame
-
--- Helper functions
-local function createToggle(parent, yPos, text, defaultValue, callback)
-    local toggleFrame = Instance.new("Frame")
-    toggleFrame.Size = UDim2.new(1, -20, 0, 32)
-    toggleFrame.Position = UDim2.new(0, 10, 0, yPos)
-    toggleFrame.BackgroundTransparency = 1
-    toggleFrame.Parent = parent
-    
-    local label = Instance.new("TextLabel")
-    label.Size = UDim2.new(0, 180, 1, 0)
-    label.Position = UDim2.new(0, 0, 0, 0)
-    label.BackgroundTransparency = 1
-    label.Text = text
-    label.TextColor3 = Color3.fromRGB(200, 200, 200)
-    label.Font = Enum.Font.Gotham
-    label.TextSize = 13
-    label.TextXAlignment = Enum.TextXAlignment.Left
-    label.Parent = toggleFrame
-    
-    local toggleBtn = Instance.new("TextButton")
-    toggleBtn.Size = UDim2.new(0, 45, 0, 22)
-    toggleBtn.Position = UDim2.new(1, -55, 0.5, -11)
-    toggleBtn.BackgroundColor3 = defaultValue and Color3.fromRGB(255, 50, 100) or Color3.fromRGB(60, 60, 70)
-    toggleBtn.Text = defaultValue and "ON" or "OFF"
-    toggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    toggleBtn.Font = Enum.Font.GothamBold
-    toggleBtn.TextSize = 10
-    toggleBtn.BorderSizePixel = 0
-    toggleBtn.Parent = toggleFrame
-    
-    local toggleCornerBtn = Instance.new("UICorner")
-    toggleCornerBtn.CornerRadius = UDim.new(1, 0)
-    toggleCornerBtn.Parent = toggleBtn
-    
-    local state = defaultValue
-    
-    toggleBtn.MouseButton1Click:Connect(function()
-        state = not state
-        if state then
-            toggleBtn.Text = "ON"
-            toggleBtn.BackgroundColor3 = Color3.fromRGB(100, 255, 100)  -- HIJAU
-            label.TextColor3 = Color3.fromRGB(100, 255, 100)  -- HIJAU
-        else
-            toggleBtn.Text = "OFF"
-            toggleBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
-            label.TextColor3 = Color3.fromRGB(200, 200, 200)
-        end
-        if callback then callback(state) end
-    end)
-    
-    return toggleBtn
-end
-
-local function createSlider(parent, yPos, text, minVal, maxVal, defaultValue, callback)
-    local sliderFrame = Instance.new("Frame")
-    sliderFrame.Size = UDim2.new(1, -20, 0, 45)
-    sliderFrame.Position = UDim2.new(0, 10, 0, yPos)
-    sliderFrame.BackgroundTransparency = 1
-    sliderFrame.Parent = parent
-    
-    local label = Instance.new("TextLabel")
-    label.Size = UDim2.new(1, 0, 0, 18)
-    label.Position = UDim2.new(0, 0, 0, 0)
-    label.BackgroundTransparency = 1
-    label.Text = text .. ": " .. defaultValue
-    label.TextColor3 = Color3.fromRGB(200, 200, 200)
-    label.Font = Enum.Font.Gotham
-    label.TextSize = 11
-    label.TextXAlignment = Enum.TextXAlignment.Left
-    label.Parent = sliderFrame
-    
-    local sliderBg = Instance.new("Frame")
-    sliderBg.Size = UDim2.new(1, -60, 0, 3)
-    sliderBg.Position = UDim2.new(0, 0, 0, 22)
-    sliderBg.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
-    sliderBg.BorderSizePixel = 0
-    sliderBg.Parent = sliderFrame
-    
-    local sliderCorner = Instance.new("UICorner")
-    sliderCorner.CornerRadius = UDim.new(0, 2)
-    sliderCorner.Parent = sliderBg
-    
-    local sliderFill = Instance.new("Frame")
-    local percent = (defaultValue - minVal) / (maxVal - minVal)
-    sliderFill.Size = UDim2.new(percent, 0, 1, 0)
-    sliderFill.BackgroundColor3 = Color3.fromRGB(255, 50, 100)
-    sliderFill.BorderSizePixel = 0
-    sliderFill.Parent = sliderBg
-    
-    local fillCorner = Instance.new("UICorner")
-    fillCorner.CornerRadius = UDim.new(0, 2)
-    fillCorner.Parent = sliderFill
-    
-    local sliderButton = Instance.new("TextButton")
-    sliderButton.Size = UDim2.new(0, 14, 0, 14)
-    sliderButton.Position = UDim2.new(percent, -7, 0, -5.5)
-    sliderButton.BackgroundColor3 = Color3.fromRGB(255, 50, 100)
-    sliderButton.Text = ""
-    sliderButton.BorderSizePixel = 0
-    sliderButton.AutoButtonColor = false
-    sliderButton.Parent = sliderBg
-    
-    local buttonCorner = Instance.new("UICorner")
-    buttonCorner.CornerRadius = UDim.new(1, 0)
-    buttonCorner.Parent = sliderButton
-    
-    local valueLabel = Instance.new("TextLabel")
-    valueLabel.Size = UDim2.new(0, 45, 0, 20)
-    valueLabel.Position = UDim2.new(1, -50, 0, 15)
-    valueLabel.BackgroundTransparency = 1
-    valueLabel.Text = tostring(defaultValue)
-    valueLabel.TextColor3 = Color3.fromRGB(255, 50, 100)
-    valueLabel.Font = Enum.Font.GothamBold
-    valueLabel.TextSize = 11
-    valueLabel.TextXAlignment = Enum.TextXAlignment.Right
-    valueLabel.Parent = sliderFrame
-    
-    local currentValue = defaultValue
-    local dragActive = false
-    
-    local function updateSlider(input)
-        local relativeX = math.clamp((input.Position.X - sliderBg.AbsolutePosition.X) / sliderBg.AbsoluteSize.X, 0, 1)
-        sliderFill.Size = UDim2.new(relativeX, 0, 1, 0)
-        sliderButton.Position = UDim2.new(relativeX, -7, 0, -5.5)
-        local value = minVal + (relativeX * (maxVal - minVal))
-        currentValue = math.floor(value + 0.5)
-        valueLabel.Text = tostring(currentValue)
-        label.Text = text .. ": " .. currentValue
-        if callback then callback(currentValue) end
-    end
-    
-    sliderButton.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            dragActive = true
-            updateSlider(input)
-        end
-    end)
-    
-    sliderButton.InputChanged:Connect(function(input)
-        if dragActive and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
-            updateSlider(input)
-        end
-    end)
-    
-    sliderButton.InputEnded:Connect(function()
-        dragActive = false
-    end)
-    
-    sliderBg.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            updateSlider(input)
-        end
-    end)
-    
-    return sliderButton
-end
-
-local function switchContent(tab)
-    for _, child in pairs(rightContent:GetChildren()) do
-        child:Destroy()
-    end
-    
-    if tab == "SURVIVOR" then
-        local header = Instance.new("TextLabel")
-        header.Size = UDim2.new(1, -20, 0, 35)
-        header.Position = UDim2.new(0, 10, 0, 10)
-        header.BackgroundTransparency = 1
-        header.Text = "SURVIVOR MODS"
-        header.TextColor3 = Color3.fromRGB(255, 50, 100)
-        header.Font = Enum.Font.GothamBold
-        header.TextSize = 14
-        header.TextXAlignment = Enum.TextXAlignment.Left
-        header.Parent = rightContent
-        
-        createToggle(rightContent, 55, "DISABLE SKILLCHECK", _G.ToggleStates.DisableSkillCheck, function(state)
-            _G.ToggleStates.DisableSkillCheck = state
-            if state then StartSkillCheck() else StopSkillCheck() end
-        end)
-        
-        createToggle(rightContent, 95, "ESP PLAYER", _G.ToggleStates.ESP_Player, function(state)
-            _G.ToggleStates.ESP_Player = state
-            if state then enableESP() else disableESP() end
-        end)
-        
-        createToggle(rightContent, 135, "MOONWALK", _G.ToggleStates.Moonwalk, function(state)
-            _G.ToggleStates.Moonwalk = state
-            if state then StartMoonwalkSystem() else StopMoonwalkSystem() end
-        end)
-        
-        createToggle(rightContent, 175, "CROUSHAIR", _G.ToggleStates.Croushair, function(state)
-            _G.ToggleStates.Croushair = state
-            if state then StartCroushair() else StopCroushair() end
-        end)
-        
-        createToggle(rightContent, 215, "BYPASS ZOOM", _G.ToggleStates.BypassZoom, function(state)
-            _G.ToggleStates.BypassZoom = state
-            if state then StartZoom() else StopZoom() end
-        end)
-        
-    elseif tab == "KILLER" then
-        local header = Instance.new("TextLabel")
-        header.Size = UDim2.new(1, -20, 0, 35)
-        header.Position = UDim2.new(0, 10, 0, 10)
-        header.BackgroundTransparency = 1
-        header.Text = "KILLER MODS"
-        header.TextColor3 = Color3.fromRGB(255, 50, 100)
-        header.Font = Enum.Font.GothamBold
-        header.TextSize = 14
-        header.TextXAlignment = Enum.TextXAlignment.Left
-        header.Parent = rightContent
-        
-        createToggle(rightContent, 55, "AIMBOT", _G.ToggleStates.Aimbot, function(state)
-            _G.ToggleStates.Aimbot = state
-            if state then StartAimbot() else StopAimbot() end
-        end)
-        
-        createToggle(rightContent, 95, "HITBOX", _G.ToggleStates.Hitbox, function(state)
-            _G.ToggleStates.Hitbox = state
-            if state then StartHitbox() else StopHitbox() end
-        end)
-        
-    elseif tab == "MODS" then
-        local header = Instance.new("TextLabel")
-        header.Size = UDim2.new(1, -20, 0, 35)
-        header.Position = UDim2.new(0, 10, 0, 10)
-        header.BackgroundTransparency = 1
-        header.Text = "MODS"
-        header.TextColor3 = Color3.fromRGB(255, 50, 100)
-        header.Font = Enum.Font.GothamBold
-        header.TextSize = 14
-        header.TextXAlignment = Enum.TextXAlignment.Left
-        header.Parent = rightContent
-        
-        createToggle(rightContent, 55, "WALKSPEED", _G.ToggleStates.Walkspeed, function(state)
-            _G.ToggleStates.Walkspeed = state
-            if state then enableWalkSpeed() else disableWalkSpeed() end
-        end)
-        
-        createSlider(rightContent, 100, "WALKSPEED VALUE", 16, 100, _G.ToggleStates.WalkspeedValue, function(value)
-            _G.ToggleStates.WalkspeedValue = value
-            updateWalkSpeed(value)
-        end)
-        
-        createToggle(rightContent, 155, "NOCLIP", _G.ToggleStates.Noclip, function(state)
-            _G.ToggleStates.Noclip = state
-            if state then enableNoClip() else disableNoClip() end
-        end)
-        
-    elseif tab == "INFO" then
-        local header = Instance.new("TextLabel")
-        header.Size = UDim2.new(1, -20, 0, 35)
-        header.Position = UDim2.new(0, 10, 0, 10)
-        header.BackgroundTransparency = 1
-        header.Text = "INFORMATION"
-        header.TextColor3 = Color3.fromRGB(255, 50, 100)
-        header.Font = Enum.Font.GothamBold
-        header.TextSize = 14
-        header.TextXAlignment = Enum.TextXAlignment.Left
-        header.Parent = rightContent
-        
-        local info = Instance.new("TextLabel")
-        info.Size = UDim2.new(1, -20, 0, 160)
-        info.Position = UDim2.new(0, 10, 0, 55)
-        info.BackgroundTransparency = 1
-        info.Text = "BITWISE HUB V.2.0 [VIP]\nCREATED BY: DYVILLE XZ\nNODE-X | DELTA LITE\n\n✅ FITUR AKTIF:\n\n🛡️ SURVIVOR:\n• Disable Skillcheck\n• ESP Player (Killer: Merah, Survivor: Biru)\n• Moonwalk (Tekan tombol R di pojok kanan bawah)\n• Croushair (Crosshair putih di tengah layar)\n• Bypass Zoom (Scroll mouse untuk zoom bebas)\n\n🔪 KILLER:\n• Aimbot (Tekan tombol aimbot di pojok kanan bawah)\n• Hitbox (Perbesar hitbox survivor ukuran 35 studs)\n\n⭐ MODS:\n• WalkSpeed (Atur kecepatan jalan 16-100)\n• NoClip (Tembus dinding)"
-        info.TextColor3 = Color3.fromRGB(150, 150, 150)
-        info.Font = Enum.Font.Gotham
-        info.TextSize = 11
-        info.TextXAlignment = Enum.TextXAlignment.Left
-        info.TextYAlignment = Enum.TextYAlignment.Top
-        info.Parent = rightContent
-    end
-end
-
-for tabName, btn in pairs(tabButtons) do
-    btn.MouseButton1Click:Connect(function()
-        for _, b in pairs(tabButtons) do
-            b.BackgroundColor3 = Color3.fromRGB(35, 35, 40)
-            b.TextColor3 = Color3.fromRGB(200, 200, 200)
-        end
-        btn.BackgroundColor3 = Color3.fromRGB(255, 50, 100)
-        btn.TextColor3 = Color3.fromRGB(255, 255, 255)
-        switchContent(tabName)
-    end)
-end
-
-tabButtons["SURVIVOR"].BackgroundColor3 = Color3.fromRGB(255, 50, 100)
-tabButtons["SURVIVOR"].TextColor3 = Color3.fromRGB(255, 255, 255)
-switchContent("SURVIVOR")
-
--- ==================== OPEN/CLOSE FRAME ====================
-local guiVisible = false
-
-toggleButton.MouseButton1Click:Connect(function()
-    if isDragging then
-        return
-    end
-    
-    guiVisible = not guiVisible
-    mainFrame.Visible = guiVisible
-    
-    if guiVisible then
-        toggleButton.Text = "✕"
-        toggleButton.BackgroundColor3 = Color3.fromRGB(30, 144, 255)
+survivorTab:AddToggle("⚡ DISABLE SKILLCHECK", false, function(v)
+    _G.DisableSkillCheck = v
+    if v then
+        StartSkillCheck()
     else
-        toggleButton.Text = "▶"
-        toggleButton.BackgroundColor3 = Color3.fromRGB(30, 144, 255)
+        StopSkillCheck()
     end
 end)
+
+survivorTab:AddToggle("👁️ ESP PLAYER", false, function(v)
+    _G.ESP_Player = v
+    if v then
+        enableESP()
+    else
+        disableESP()
+    end
+end)
+
+survivorTab:AddToggle("🌙 MOONWALK", false, function(v)
+    _G.Moonwalk = v
+    if v then
+        StartMoonwalkSystem()
+    else
+        StopMoonwalkSystem()
+    end
+end)
+
+survivorTab:AddToggle("🎯 CROUSHAIR", false, function(v)
+    _G.Croushair = v
+    if v then
+        StartCroushair()
+    else
+        StopCroushair()
+    end
+end)
+
+survivorTab:AddToggle("🔍 BYPASS ZOOM", false, function(v)
+    _G.BypassZoom = v
+    if v then
+        StartZoom()
+    else
+        StopZoom()
+    end
+end)
+
+-- ==================== TAB KILLER ====================
+local killerTab = window:CreateTab("KILLER")
+killerTab:AddDivider("KILLER MODS")
+
+killerTab:AddToggle("🎯 AIMBOT", false, function(v)
+    _G.Aimbot = v
+    if v then
+        StartAimbot()
+    else
+        StopAimbot()
+    end
+end)
+
+killerTab:AddToggle("📦 HITBOX", false, function(v)
+    _G.Hitbox = v
+    if v then
+        StartHitbox()
+    else
+        StopHitbox()
+    end
+end)
+
+-- ==================== TAB MODS ====================
+local modsTab = window:CreateTab("MODS")
+modsTab:AddDivider("MODS")
+
+modsTab:AddToggle("🏃 WALKSPEED", false, function(v)
+    _G.Walkspeed = v
+    if v then
+        enableWalkSpeed()
+    else
+        disableWalkSpeed()
+    end
+end)
+
+modsTab:AddSlider("🏃 WALKSPEED VALUE", 16, 100, 50, function(v)
+    _G.WalkspeedValue = v
+    updateWalkSpeed(v)
+end)
+
+modsTab:AddToggle("🌀 NOCLIP", false, function(v)
+    _G.Noclip = v
+    if v then
+        enableNoClip()
+    else
+        disableNoClip()
+    end
+end)
+
+-- ==================== TAB INFO ====================
+local infoTab = window:CreateTab("INFO")
+infoTab:AddDivider("INFORMATION")
+infoTab:AddLabel("BITWISE HUB V.2.0 [VIP]")
+infoTab:AddLabel("CREATED BY: DYVILLE XZ")
+infoTab:AddLabel("NODE-X | DELTA LITE")
+infoTab:AddLabel("")
+infoTab:AddLabel("✅ FITUR AKTIF:")
+infoTab:AddLabel("🛡️ SURVIVOR: Skillcheck, ESP, Moonwalk, Croushair, Bypass Zoom")
+infoTab:AddLabel("🔪 KILLER: Aimbot, Hitbox")
+infoTab:AddLabel("🛠️ MODS: WalkSpeed + Slider, NoClip")
+infoTab:AddLabel("")
+infoTab:AddLabel("ALL FEATURES ARE FOR EDUCATIONAL")
+infoTab:AddLabel("PURPOSES ONLY.")
+
+window:Start()
