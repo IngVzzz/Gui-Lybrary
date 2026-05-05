@@ -13,6 +13,7 @@ _G.Hitbox = false
 _G.Walkspeed = false
 _G.WalkspeedValue = 50
 _G.Noclip = false
+_G.Fullbright = false
 
 -- ==================== DISABLE SKILLCHECK SCRIPT ====================
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -23,6 +24,7 @@ local UserInputService = game:GetService("UserInputService")
 local CoreGui = game:GetService("CoreGui")
 local Workspace = game:GetService("Workspace")
 local UIS = game:GetService("UserInputService")
+local Lighting = game:GetService("Lighting")
 
 local isSkillCheckActive = false
 local skillCheckConnections = {}
@@ -236,7 +238,7 @@ local function disableESP()
     clearAllESPConnections()
 end
 
--- ==================== MOONWALK SCRIPT (ASLI) ====================
+-- ==================== MOONWALK SCRIPT ====================
 local PlayersMW = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UIS = game:GetService("UserInputService")
@@ -476,7 +478,7 @@ local function CreateCroushair()
     local dot = Instance.new("Frame")
     dot.Name = "Dot"
     dot.Size = UDim2.new(0, 5, 0, 5)
-    dot.Position = UDim2.new(0.5, 0, 0.52, 0)
+    dot.Position = UDim2.new(0.5, 0, 0.51, 0)
     dot.AnchorPoint = Vector2.new(0.5, 0.5)
     dot.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
     dot.BorderSizePixel = 0
@@ -600,7 +602,7 @@ local function StopZoom()
     disableZoom()
 end
 
--- ==================== AIMBOT SCRIPT ====================
+-- ==================== AIMBOT SCRIPT (FIXED) ====================
 local aimbotEnabled = false
 local currentTarget = nil
 local maxLockDistance = 35
@@ -715,8 +717,8 @@ local function CreateAimbotGUI()
     aimbotButton.Size = UDim2.new(0, 50, 0, 50)
     aimbotButton.Position = UDim2.new(1, -210, 1, -420)
     aimbotButton.AnchorPoint = Vector2.new(1, 1)
-    aimbotButton.BackgroundColor3 = Color3.fromRGB(255, 80, 80)
-    aimbotButton.BackgroundTransparency = 0.15
+    aimbotButton.BackgroundColor3 = aimbotEnabled and Color3.fromRGB(100, 255, 100) or Color3.fromRGB(255, 80, 80)
+    aimbotButton.BackgroundTransparency = aimbotEnabled and 0.3 or 0.15
     aimbotButton.Image = "rbxassetid://3926305904"
     aimbotButton.ImageColor3 = Color3.fromRGB(255, 255, 255)
     aimbotButton.ImageTransparency = 0.2
@@ -726,7 +728,7 @@ local function CreateAimbotGUI()
     cornerAimbot.CornerRadius = UDim.new(1, 0)
     
     strokeAimbot = Instance.new("UIStroke", aimbotButton)
-    strokeAimbot.Color = Color3.fromRGB(255, 100, 100)
+    strokeAimbot.Color = aimbotEnabled and Color3.fromRGB(100, 255, 100) or Color3.fromRGB(255, 100, 100)
     strokeAimbot.Thickness = 2
     strokeAimbot.Transparency = 0.5
 
@@ -778,6 +780,9 @@ local function CreateAimbotGUI()
             currentTarget = nil
         end
         UpdateButtonUIAimbot()
+        
+        -- Update global variable biar sinkron
+        _G.Aimbot = aimbotEnabled
     end)
     table.insert(uiConnections, clickConn)
 end
@@ -835,11 +840,13 @@ local function StartAimbot()
     end
     cleanAllEventsAimbot()
     
-    aimbotEnabled = true
+    -- JANGAN nyalain aimbotEnabled dulu
+    aimbotEnabled = false  -- <-- INI PENTING: DEFAULT OFF
     aimbotCamera = workspace.CurrentCamera
-    CreateAimbotGUI()
+    CreateAimbotGUI()  -- GUI dibuat dengan status OFF (merah)
     setupRenderSteppedAimbot()
     setupCameraHandlerAimbot()
+    
     if aimbotScreenGui then
         aimbotScreenGui.Enabled = true
     end
@@ -862,7 +869,7 @@ local function StopAimbot()
     cleanAllEventsAimbot()
 end
 
--- ==================== HITBOX SCRIPT (NO SLIDER) ====================
+-- ==================== HITBOX SCRIPT ====================
 local hitboxActive = false
 local HITBOX_Size = 30
 local OriginalHitboxSizes = {}
@@ -1122,53 +1129,83 @@ end
 
 LocalPlayer.CharacterAdded:Connect(onCharacterAddedNoClip)
 
+-- ==================== FULLBRIGHT SCRIPT ====================
+local isFullbrightActive = false
+local originalBrightness = Lighting.Brightness
+local originalTimeOfDay = Lighting.TimeOfDay
+local originalClockTime = Lighting.ClockTime
+local originalAmbient = Lighting.Ambient
+local originalFogEnd = Lighting.FogEnd
+local originalGlobalShadows = Lighting.GlobalShadows
+
+local function enableFullbright()
+    if isFullbrightActive then return end
+    isFullbrightActive = true
+    
+    if originalBrightness == Lighting.Brightness then
+        originalBrightness = Lighting.Brightness
+        originalTimeOfDay = Lighting.TimeOfDay
+        originalClockTime = Lighting.ClockTime
+        originalAmbient = Lighting.Ambient
+        originalFogEnd = Lighting.FogEnd
+        originalGlobalShadows = Lighting.GlobalShadows
+    end
+    
+    Lighting.Brightness = 2
+    Lighting.TimeOfDay = "12:00:00"
+    Lighting.ClockTime = 12
+    Lighting.Ambient = Color3.fromRGB(255, 255, 255)
+    Lighting.FogEnd = 100000
+    Lighting.GlobalShadows = false
+end
+
+local function disableFullbright()
+    if not isFullbrightActive then return end
+    isFullbrightActive = false
+    
+    Lighting.Brightness = originalBrightness
+    Lighting.TimeOfDay = originalTimeOfDay
+    Lighting.ClockTime = originalClockTime
+    Lighting.Ambient = originalAmbient
+    Lighting.FogEnd = originalFogEnd
+    Lighting.GlobalShadows = originalGlobalShadows
+end
+
+-- ==================== CHARACTER ADDED HANDLER ====================
+LocalPlayer.CharacterAdded:Connect(function()
+    task.wait(0.3)
+    if isEspActive then enableESP() end
+    if walkSpeedActive then applySpeed() end
+    if noClipActive then updateNoclip() end
+end)
+
 -- ==================== TAB SURVIVOR ====================
 local survivorTab = window:CreateTab("SURVIVOR")
 survivorTab:AddDivider("SURVIVOR MODS")
 
 survivorTab:AddToggle("⚡ DISABLE SKILLCHECK", false, function(v)
     _G.DisableSkillCheck = v
-    if v then
-        StartSkillCheck()
-    else
-        StopSkillCheck()
-    end
+    if v then StartSkillCheck() else StopSkillCheck() end
 end)
 
 survivorTab:AddToggle("👁️ ESP PLAYER", false, function(v)
     _G.ESP_Player = v
-    if v then
-        enableESP()
-    else
-        disableESP()
-    end
+    if v then enableESP() else disableESP() end
 end)
 
 survivorTab:AddToggle("🌙 MOONWALK", false, function(v)
     _G.Moonwalk = v
-    if v then
-        StartMoonwalkSystem()
-    else
-        StopMoonwalkSystem()
-    end
+    if v then StartMoonwalkSystem() else StopMoonwalkSystem() end
 end)
 
 survivorTab:AddToggle("🎯 CROUSHAIR", false, function(v)
     _G.Croushair = v
-    if v then
-        StartCroushair()
-    else
-        StopCroushair()
-    end
+    if v then StartCroushair() else StopCroushair() end
 end)
 
 survivorTab:AddToggle("🔍 BYPASS ZOOM", false, function(v)
     _G.BypassZoom = v
-    if v then
-        StartZoom()
-    else
-        StopZoom()
-    end
+    if v then StartZoom() else StopZoom() end
 end)
 
 -- ==================== TAB KILLER ====================
@@ -1177,20 +1214,12 @@ killerTab:AddDivider("KILLER MODS")
 
 killerTab:AddToggle("🎯 AIMBOT", false, function(v)
     _G.Aimbot = v
-    if v then
-        StartAimbot()
-    else
-        StopAimbot()
-    end
+    if v then StartAimbot() else StopAimbot() end
 end)
 
 killerTab:AddToggle("📦 HITBOX", false, function(v)
     _G.Hitbox = v
-    if v then
-        StartHitbox()
-    else
-        StopHitbox()
-    end
+    if v then StartHitbox() else StopHitbox() end
 end)
 
 -- ==================== TAB MODS ====================
@@ -1199,11 +1228,7 @@ modsTab:AddDivider("MODS")
 
 modsTab:AddToggle("🏃 WALKSPEED", false, function(v)
     _G.Walkspeed = v
-    if v then
-        enableWalkSpeed()
-    else
-        disableWalkSpeed()
-    end
+    if v then enableWalkSpeed() else disableWalkSpeed() end
 end)
 
 modsTab:AddSlider("🏃 WALKSPEED VALUE", 16, 100, 50, function(v)
@@ -1213,24 +1238,30 @@ end)
 
 modsTab:AddToggle("🌀 NOCLIP", false, function(v)
     _G.Noclip = v
-    if v then
-        enableNoClip()
-    else
-        disableNoClip()
-    end
+    if v then enableNoClip() else disableNoClip() end
+end)
+
+-- ==================== TAB MISC ====================
+local miscTab = window:CreateTab("MISC")
+miscTab:AddDivider("MISC MODS")
+
+miscTab:AddToggle("☀️ FULLBRIGHT", false, function(v)
+    _G.Fullbright = v
+    if v then enableFullbright() else disableFullbright() end
 end)
 
 -- ==================== TAB INFO ====================
 local infoTab = window:CreateTab("INFO")
 infoTab:AddDivider("INFORMATION")
-infoTab:AddLabel("BITWISE HUB V.2.0 [VIP]")
-infoTab:AddLabel("CREATED BY: DYVILLE XZ")
-infoTab:AddLabel("NODE-X | DELTA LITE")
+infoTab:AddLabel("VIOLENCE DISTRICT [VIP]")
+infoTab:AddLabel("CREATED BY: INGVZZ")
+infoTab:AddLabel("DEVELOPER-X | INGVZZ")
 infoTab:AddLabel("")
 infoTab:AddLabel("✅ FITUR AKTIF:")
 infoTab:AddLabel("🛡️ SURVIVOR: Skillcheck, ESP, Moonwalk, Croushair, Bypass Zoom")
 infoTab:AddLabel("🔪 KILLER: Aimbot, Hitbox")
 infoTab:AddLabel("🛠️ MODS: WalkSpeed + Slider, NoClip")
+infoTab:AddLabel("🎲 MISC: Fullbright")
 infoTab:AddLabel("")
 infoTab:AddLabel("ALL FEATURES ARE FOR EDUCATIONAL")
 infoTab:AddLabel("PURPOSES ONLY.")
