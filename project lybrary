@@ -1,342 +1,396 @@
--- ===== MOBILEUI LIBRARY v1.0 =====
--- Lightweight UI framework for Roblox mobile exploits
--- Size: ~6 KB, 50-60 FPS on mobile
+-- ============================================
+-- DEMOX GUI LIBRARY v1.0
+-- Buat bikin GUI tab system dengan mudah
+-- by Demox_Ai'CvA057xp
+-- ============================================
 
-local MobileUI = {}
-local UserInputService = game:GetService("UserInputService")
-local RunService = game:GetService("RunService")
-local Players = game:GetService("Players")
-local LocalPlayer = Players.LocalPlayer
+local DemoxLib = {}
+local screenGui = nil
+local mainFrame = nil
+local rightPanel = nil
+local scrollingFrame = nil
+local scrollLayout = nil
+local tabButtons = {}
+local currentTab = nil
+local toggleButton = nil
+local isOpen = false
 
--- Private variables
-local _elements = {}
-local _tabs = {}
-local _currentTab = nil
-local _currentTabIndex = nil
-local _visible = false
-local _screen = {X = 0, Y = 0}
-local _contentY = 0
-local _tabButtons = {}
-local _tabTexts = {}
-
--- Update screen size
-local function updateScreen()
-    local cam = workspace.CurrentCamera
-    _screen.X = cam.ViewportSize.X
-    _screen.Y = cam.ViewportSize.Y
-end
-updateScreen()
-
-RunService.RenderStepped:Connect(updateScreen)
-
--- ===== DRAWING OBJECTS (PRIVATE) =====
-local _components = {
-    ToggleButton = nil,
-    MainFrame = nil,
-    FrameBorder = nil,
-    TitleBar = nil,
-    TitleText = nil,
-    CloseBtn = nil,
-    CloseIcon = nil,
-    LeftPanel = nil,
-    RightPanel = nil
+-- Warna tema (bisa lo ganti)
+local Theme = {
+    Background = Color3.fromRGB(20, 20, 30),
+    PanelLeft = Color3.fromRGB(25, 25, 38),
+    TabActive = Color3.fromRGB(80, 80, 120),
+    TabInactive = Color3.fromRGB(35, 35, 50),
+    ButtonBg = Color3.fromRGB(40, 40, 60),
+    ButtonActive = Color3.fromRGB(0, 100, 0),
+    TextPrimary = Color3.fromRGB(255, 255, 255),
+    TextDim = Color3.fromRGB(180, 180, 200),
+    AccentBlue = Color3.fromRGB(100, 100, 255),
+    AccentRed = Color3.fromRGB(255, 100, 100),
+    AccentGreen = Color3.fromRGB(100, 255, 100),
+    AccentYellow = Color3.fromRGB(255, 200, 100)
 }
 
--- ===== CREATE DRAWING OBJECTS =====
-local function createObjects()
-    -- Toggle button (buka/tutup)
-    _components.ToggleButton = Drawing.new("Square")
-    _components.ToggleButton.Filled = true
-    _components.ToggleButton.Color = 0xFF222222
-    _components.ToggleButton.Position = Vector2.new(20, 20)
-    _components.ToggleButton.Size = Vector2.new(50, 50)
-    _components.ToggleButton.Thickness = 2
-    _components.ToggleButton.Transparency = 0.8
-    _components.ToggleButton.Visible = true
-    
-    _components.ToggleIcon = Drawing.new("Text")
-    _components.ToggleIcon.Text = "⚙"
-    _components.ToggleIcon.Size = 28
-    _components.ToggleIcon.Color = 0xFFFFFFFF
-    _components.ToggleIcon.Position = Vector2.new(35, 28)
-    _components.ToggleIcon.Visible = true
-    _components.ToggleIcon.Center = true
-    
-    -- Main frame
-    _components.MainFrame = Drawing.new("Square")
-    _components.MainFrame.Filled = true
-    _components.MainFrame.Color = 0xFF0A0A0A
-    _components.MainFrame.Thickness = 1
-    _components.MainFrame.Transparency = 0.95
-    _components.MainFrame.Visible = false
-    
-    _components.FrameBorder = Drawing.new("Square")
-    _components.FrameBorder.Filled = false
-    _components.FrameBorder.Color = 0xFF3333FF
-    _components.FrameBorder.Thickness = 2
-    _components.FrameBorder.Visible = false
-    
-    _components.TitleBar = Drawing.new("Square")
-    _components.TitleBar.Filled = true
-    _components.TitleBar.Color = 0xFF1A1A2E
-    _components.TitleBar.Visible = false
-    
-    _components.TitleText = Drawing.new("Text")
-    _components.TitleText.Text = "SUXANOX UI"
-    _components.TitleText.Size = 16
-    _components.TitleText.Color = 0xFF3333FF
-    _components.TitleText.Visible = false
-    
-    _components.CloseBtn = Drawing.new("Square")
-    _components.CloseBtn.Filled = true
-    _components.CloseBtn.Color = 0xFF333333
-    _components.CloseBtn.Size = Vector2.new(30, 30)
-    _components.CloseBtn.Visible = false
-    
-    _components.CloseIcon = Drawing.new("Text")
-    _components.CloseIcon.Text = "✕"
-    _components.CloseIcon.Size = 18
-    _components.CloseIcon.Color = 0xFFFF5555
-    _components.CloseIcon.Visible = false
-    
-    _components.LeftPanel = Drawing.new("Square")
-    _components.LeftPanel.Filled = true
-    _components.LeftPanel.Color = 0xFF111118
-    _components.LeftPanel.Visible = false
-    
-    _components.RightPanel = Drawing.new("Square")
-    _components.RightPanel.Filled = true
-    _components.RightPanel.Color = 0xFF0D0D12
-    _components.RightPanel.Visible = false
+-- ========== FUNGSI UTILITY ==========
+local function createCorner(obj, radius)
+    local corner = Instance.new("UICorner")
+    corner.Parent = obj
+    corner.CornerRadius = UDim.new(0, radius)
+    return corner
 end
 
--- ===== UPDATE POSITIONS =====
-local function updatePositions()
-    _components.MainFrame.Size = Vector2.new(_screen.X - 100, _screen.Y - 100)
-    _components.MainFrame.Position = Vector2.new(50, 50)
-    
-    _components.FrameBorder.Size = Vector2.new(_screen.X - 100, _screen.Y - 100)
-    _components.FrameBorder.Position = Vector2.new(50, 50)
-    
-    _components.TitleBar.Size = Vector2.new(_screen.X - 100, 40)
-    _components.TitleBar.Position = Vector2.new(50, 50)
-    
-    _components.TitleText.Position = Vector2.new(70, 58)
-    
-    _components.CloseBtn.Position = Vector2.new(_screen.X - 110, 55)
-    _components.CloseIcon.Position = Vector2.new(_screen.X - 98, 60)
-    
-    _components.LeftPanel.Size = Vector2.new(150, _screen.Y - 140)
-    _components.LeftPanel.Position = Vector2.new(50, 90)
-    
-    _components.RightPanel.Size = Vector2.new(_screen.X - 250, _screen.Y - 140)
-    _components.RightPanel.Position = Vector2.new(200, 90)
-    
-    -- Update tab buttons positions
-    for i, btn in pairs(_tabButtons) do
-        local yPos = 100 + (i - 1) * 50
-        btn.Position = Vector2.new(55, yPos)
-        if _tabTexts[i] then
-            _tabTexts[i].Position = Vector2.new(90, yPos + 13)
-        end
-    end
+local function createStroke(obj, color, thickness, transparency)
+    local stroke = Instance.new("UIStroke")
+    stroke.Parent = obj
+    stroke.Color = color or Theme.AccentBlue
+    stroke.Thickness = thickness or 1
+    stroke.Transparency = transparency or 0.5
+    return stroke
 end
 
--- ===== SHOW/HIDE GUI =====
-local function showGUI()
-    _visible = true
-    _components.MainFrame.Visible = true
-    _components.FrameBorder.Visible = true
-    _components.TitleBar.Visible = true
-    _components.TitleText.Visible = true
-    _components.CloseBtn.Visible = true
-    _components.CloseIcon.Visible = true
-    _components.LeftPanel.Visible = true
-    _components.RightPanel.Visible = true
+-- ========== INIT GUI ==========
+function DemoxLib:Init(title)
+    if screenGui then return end
     
-    for _, btn in pairs(_tabButtons) do
-        btn.Visible = true
-    end
-    for _, txt in pairs(_tabTexts) do
-        txt.Visible = true
-    end
+    local Players = game:GetService("Players")
+    local LocalPlayer = Players.LocalPlayer
     
-    _contentY = 110
-    updatePositions()
-end
-
-local function hideGUI()
-    _visible = false
-    _components.MainFrame.Visible = false
-    _components.FrameBorder.Visible = false
-    _components.TitleBar.Visible = false
-    _components.TitleText.Visible = false
-    _components.CloseBtn.Visible = false
-    _components.CloseIcon.Visible = false
-    _components.LeftPanel.Visible = false
-    _components.RightPanel.Visible = false
+    screenGui = Instance.new("ScreenGui")
+    screenGui.Name = "DemoxGUI"
+    screenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+    screenGui.ResetOnSpawn = false
     
-    for _, btn in pairs(_tabButtons) do
-        btn.Visible = false
-    end
-    for _, txt in pairs(_tabTexts) do
-        txt.Visible = false
-    end
+    -- Frame utama
+    mainFrame = Instance.new("Frame")
+    mainFrame.Parent = screenGui
+    mainFrame.Size = UDim2.new(0, 400, 0, 450)
+    mainFrame.Position = UDim2.new(0.5, -200, 0.5, -225)
+    mainFrame.BackgroundColor3 = Theme.Background
+    mainFrame.BackgroundTransparency = 0.05
+    mainFrame.BorderSizePixel = 0
+    mainFrame.Visible = false
+    mainFrame.Active = false
+    mainFrame.Draggable = false
     
-    -- Hide all elements
-    for _, element in pairs(_elements) do
-        if element.Main then element.Main.Visible = false end
-        if element.Label then element.Label.Visible = false end
-        if element.Handle then element.Handle.Visible = false end
-        if element.Fill then element.Fill.Visible = false end
-    end
-end
-
--- ===== SETUP TOGGLE BUTTON =====
-local function setupToggleButton()
-    _components.ToggleButton.InputBegan = function(input)
-        if input.UserInputType == Enum.UserInputType.Touch then
-            _components.ToggleButton.Color = 0xFF444444
-            task.wait(0.05)
-            _components.ToggleButton.Color = 0xFF222222
-            
-            if _visible then
-                hideGUI()
-            else
-                showGUI()
-            end
-        end
-    end
+    createCorner(mainFrame, 12)
+    createStroke(mainFrame, Theme.AccentBlue, 1, 0.4)
     
-    _components.CloseBtn.InputBegan = function(input)
-        if input.UserInputType == Enum.UserInputType.Touch and _visible then
-            _components.CloseBtn.Color = 0xFF555555
-            task.wait(0.05)
-            _components.CloseBtn.Color = 0xFF333333
-            hideGUI()
-        end
-    end
-end
-
--- ===== PUBLIC METHODS =====
-
--- Create Window (inisialisasi)
-function MobileUI:CreateWindow(title)
-    createObjects()
-    setupToggleButton()
-    _components.TitleText.Text = title or "SUXANOX UI"
+    -- Header
+    local header = Instance.new("TextLabel")
+    header.Parent = mainFrame
+    header.Size = UDim2.new(1, 0, 0, 40)
+    header.Position = UDim2.new(0, 0, 0, 0)
+    header.BackgroundColor3 = Color3.fromRGB(30, 30, 45)
+    header.BackgroundTransparency = 0
+    header.BorderSizePixel = 0
+    header.Text = title or "DEMOX MENU ⚡"
+    header.TextColor3 = Theme.TextPrimary
+    header.TextSize = 18
+    header.Font = Enum.Font.GothamBold
+    createCorner(header, 12)
+    
+    -- Panel kiri (tab)
+    local leftPanel = Instance.new("Frame")
+    leftPanel.Parent = mainFrame
+    leftPanel.Size = UDim2.new(0, 100, 1, -40)
+    leftPanel.Position = UDim2.new(0, 0, 0, 40)
+    leftPanel.BackgroundColor3 = Theme.PanelLeft
+    leftPanel.BackgroundTransparency = 0
+    leftPanel.BorderSizePixel = 0
+    
+    -- Panel kanan (konten)
+    rightPanel = Instance.new("Frame")
+    rightPanel.Parent = mainFrame
+    rightPanel.Size = UDim2.new(1, -100, 1, -40)
+    rightPanel.Position = UDim2.new(0, 100, 0, 40)
+    rightPanel.BackgroundColor3 = Theme.Background
+    rightPanel.BackgroundTransparency = 0
+    rightPanel.BorderSizePixel = 0
+    
+    -- Scrolling frame untuk konten
+    scrollingFrame = Instance.new("ScrollingFrame")
+    scrollingFrame.Parent = rightPanel
+    scrollingFrame.Size = UDim2.new(1, -10, 1, -10)
+    scrollingFrame.Position = UDim2.new(0, 5, 0, 5)
+    scrollingFrame.BackgroundTransparency = 1
+    scrollingFrame.BorderSizePixel = 0
+    scrollingFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
+    scrollingFrame.ScrollBarThickness = 4
+    scrollingFrame.ScrollBarImageColor3 = Color3.fromRGB(100, 100, 150)
+    
+    scrollLayout = Instance.new("UIListLayout")
+    scrollLayout.Parent = scrollingFrame
+    scrollLayout.SortOrder = Enum.SortOrder.LayoutOrder
+    scrollLayout.Padding = UDim.new(0, 8)
+    
+    -- Tombol toggle
+    toggleButton = Instance.new("TextButton")
+    toggleButton.Parent = screenGui
+    toggleButton.Position = UDim2.new(0.02, 0, 0.85, 0)
+    toggleButton.Size = UDim2.new(0, 60, 0, 60)
+    toggleButton.BackgroundColor3 = Color3.fromRGB(35, 35, 55)
+    toggleButton.BackgroundTransparency = 0
+    toggleButton.BorderSizePixel = 0
+    toggleButton.Text = "⚡"
+    toggleButton.TextColor3 = Theme.TextPrimary
+    toggleButton.TextSize = 30
+    toggleButton.Font = Enum.Font.GothamBold
+    toggleButton.Active = false
+    toggleButton.Draggable = false
+    createCorner(toggleButton, 60)
+    
+    toggleButton.MouseButton1Click:Connect(function()
+        isOpen = not isOpen
+        mainFrame.Visible = isOpen
+        toggleButton.Text = isOpen and "⚡" or "▶"
+        toggleButton.BackgroundColor3 = isOpen and Color3.fromRGB(35, 35, 55) or Color3.fromRGB(80, 40, 60)
+    end)
+    
     return self
 end
 
--- Create Tab
-function MobileUI:CreateTab(name)
-    local index = #_tabButtons + 1
-    local yPos = 100 + (index - 1) * 50
+-- ========== CREATE TAB ==========
+function DemoxLib:Tab(name, icon)
+    local tabId = name:gsub("%s+", "_"):lower()
     
-    local tabBtn = Drawing.new("Square")
-    tabBtn.Filled = true
-    tabBtn.Color = 0xFF1A1A2E
-    tabBtn.Size = Vector2.new(140, 40)
-    tabBtn.Position = Vector2.new(55, yPos)
-    tabBtn.Visible = false
-    tabBtn.Thickness = 0
+    local tabBtn = Instance.new("TextButton")
+    tabBtn.Parent = screenGui:FindFirstChild("DemoxGUI"):FindFirstChild("MainFrame"):FindFirstChild("Frame"):WaitForChild("Frame") or 
+                   mainFrame:FindFirstChildWhichIsA("Frame") or mainFrame:FindFirstChild("LeftPanel")
+    -- Cari left panel
+    local leftPanel = nil
+    for _, child in pairs(mainFrame:GetChildren()) do
+        if child:IsA("Frame") and child.Size == UDim2.new(0, 100, 1, -40) then
+            leftPanel = child
+            break
+        end
+    end
     
-    local tabText = Drawing.new("Text")
-    tabText.Text = name
-    tabText.Size = 12
-    tabText.Color = 0xFFFFFFFF
-    tabText.Position = Vector2.new(90, yPos + 13)
-    tabText.Visible = false
-    
-    _tabButtons[index] = tabBtn
-    _tabTexts[index] = tabText
-    _tabs[index] = {
-        Name = name,
-        Button = tabBtn,
-        Text = tabText,
-        Elements = {}
-    }
-    
-    -- Tab click handler
-    tabBtn.InputBegan = function(input)
-        if input.UserInputType == Enum.UserInputType.Touch and _visible then
-            -- Reset previous tab
-            if _currentTabIndex then
-                for _, element in pairs(_tabs[_currentTabIndex].Elements) do
-                    if element.Main then element.Main.Visible = false end
-                    if element.Label then element.Label.Visible = false end
-                    if element.Handle then element.Handle.Visible = false end
-                    if element.Fill then element.Fill.Visible = false end
-                    if element.Selected then element.Selected.Visible = false end
-                    if element.Arrow then element.Arrow.Visible = false end
-                end
-                _tabButtons[_currentTabIndex].Color = 0xFF1A1A2E
-                _tabTexts[_currentTabIndex].Color = 0xFFFFFFFF
-            end
-            
-            -- Activate new tab
-            _currentTabIndex = index
-            _currentTab = _tabs[index]
-            _tabButtons[index].Color = 0xFF3333AA
-            _tabTexts[index].Color = 0xFFFFFFFF
-            
-            -- Show elements
-            for _, element in pairs(_currentTab.Elements) do
-                if element.Main then element.Main.Visible = true end
-                if element.Label then element.Label.Visible = true end
-                if element.Handle then element.Handle.Visible = true end
-                if element.Fill then element.Fill.Visible = true end
-                if element.Selected then element.Selected.Visible = true end
-                if element.Arrow then element.Arrow.Visible = true end
+    if leftPanel then
+        tabBtn.Parent = leftPanel
+    else
+        -- Fallback: cari panel kiri
+        for _, child in pairs(mainFrame:GetDescendants()) do
+            if child:IsA("Frame") and child.Size == UDim2.new(0, 100, 1, -40) then
+                tabBtn.Parent = child
+                break
             end
         end
     end
     
-    -- Auto select first tab
-    if index == 1 then
-        tabBtn.Color = 0xFF3333AA
-        _currentTabIndex = 1
-        _currentTab = _tabs[1]
+    tabBtn.Size = UDim2.new(1, -10, 0, 40)
+    tabBtn.BackgroundColor3 = Theme.TabInactive
+    tabBtn.Text = icon and icon .. " " .. name or name
+    tabBtn.TextColor3 = Theme.TextDim
+    tabBtn.TextSize = 13
+    tabBtn.Font = Enum.Font.Gotham
+    tabBtn.BorderSizePixel = 0
+    createCorner(tabBtn, 8)
+    
+    -- Update posisi tombol tab
+    local btnCount = 0
+    for _, btn in pairs(tabButtons) do btnCount = btnCount + 1 end
+    tabBtn.Position = UDim2.new(0, 5, 0, 10 + (btnCount * 45))
+    
+    tabButtons[tabId] = {button = tabBtn, name = name, icon = icon}
+    
+    -- Buat konten tab (hidden dulu)
+    local content = Instance.new("Frame")
+    content.Parent = scrollingFrame
+    content.Size = UDim2.new(1, 0, 0, 0)
+    content.BackgroundTransparency = 1
+    content.Visible = false
+    content.LayoutOrder = 1
+    
+    local contentLayout = Instance.new("UIListLayout")
+    contentLayout.Parent = content
+    contentLayout.SortOrder = Enum.SortOrder.LayoutOrder
+    contentLayout.Padding = UDim.new(0, 8)
+    
+    tabBtn.MouseButton1Click:Connect(function()
+        -- Sembunyikan semua konten
+        for _, child in pairs(scrollingFrame:GetChildren()) do
+            if child:IsA("Frame") then
+                child.Visible = false
+            end
+        end
+        content.Visible = true
+        -- Update tampilan tab
+        for _, t in pairs(tabButtons) do
+            t.button.BackgroundColor3 = Theme.TabInactive
+            t.button.TextColor3 = Theme.TextDim
+        end
+        tabBtn.BackgroundColor3 = Theme.TabActive
+        tabBtn.TextColor3 = Theme.TextPrimary
+        
+        -- Update canvas size
+        scrollLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+            scrollingFrame.CanvasSize = UDim2.new(0, 0, 0, contentLayout.AbsoluteContentSize.Y + 10)
+        end)
+        contentLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Fire()
+    end)
+    
+    -- Jika tab pertama, aktifkan
+    if #tabButtons == 1 then
+        tabBtn.MouseButton1Click:Fire()
     end
     
-    return index
+    return {
+        _content = content,
+        _layout = contentLayout,
+        
+        -- ========== ADD TOGGLE ==========
+        AddToggle = function(self, label, callback)
+            local toggleBtn = Instance.new("TextButton")
+            toggleBtn.Parent = self._content
+            toggleBtn.Size = UDim2.new(1, -20, 0, 35)
+            toggleBtn.BackgroundColor3 = Theme.ButtonBg
+            toggleBtn.Text = "🔘 " .. label .. ": OFF"
+            toggleBtn.TextColor3 = Theme.TextPrimary
+            toggleBtn.TextSize = 13
+            toggleBtn.Font = Enum.Font.Gotham
+            toggleBtn.BorderSizePixel = 0
+            createCorner(toggleBtn, 6)
+            
+            local state = false
+            toggleBtn.MouseButton1Click:Connect(function()
+                state = not state
+                toggleBtn.Text = state and "🟢 " .. label .. ": ON" or "🔘 " .. label .. ": OFF"
+                toggleBtn.BackgroundColor3 = state and Theme.ButtonActive or Theme.ButtonBg
+                if callback then callback(state) end
+            end)
+            
+            return toggleBtn
+        end,
+        
+        -- ========== ADD BUTTON ==========
+        AddButton = function(self, label, callback)
+            local btn = Instance.new("TextButton")
+            btn.Parent = self._content
+            btn.Size = UDim2.new(1, -20, 0, 35)
+            btn.BackgroundColor3 = Theme.ButtonBg
+            btn.Text = label
+            btn.TextColor3 = Theme.TextPrimary
+            btn.TextSize = 13
+            btn.Font = Enum.Font.Gotham
+            btn.BorderSizePixel = 0
+            createCorner(btn, 6)
+            
+            btn.MouseButton1Click:Connect(function()
+                if callback then callback() end
+            end)
+            
+            return btn
+        end,
+        
+        -- ========== ADD SLIDER ==========
+        AddSlider = function(self, label, min, max, default, callback)
+            local frame = Instance.new("Frame")
+            frame.Parent = self._content
+            frame.Size = UDim2.new(1, -20, 0, 55)
+            frame.BackgroundTransparency = 1
+            
+            local textLabel = Instance.new("TextLabel")
+            textLabel.Parent = frame
+            textLabel.Size = UDim2.new(1, 0, 0, 20)
+            textLabel.BackgroundTransparency = 1
+            textLabel.Text = label .. ": " .. tostring(default)
+            textLabel.TextColor3 = Theme.TextDim
+            textLabel.TextSize = 12
+            textLabel.TextXAlignment = Enum.TextXAlignment.Left
+            
+            local slider = Instance.new("Frame")
+            slider.Parent = frame
+            slider.Position = UDim2.new(0, 0, 0, 22)
+            slider.Size = UDim2.new(1, 0, 0, 4)
+            slider.BackgroundColor3 = Color3.fromRGB(50, 50, 70)
+            slider.BorderSizePixel = 0
+            createCorner(slider, 2)
+            
+            local fill = Instance.new("Frame")
+            fill.Parent = slider
+            fill.Size = UDim2.new((default - min) / (max - min), 0, 1, 0)
+            fill.BackgroundColor3 = Theme.AccentBlue
+            fill.BorderSizePixel = 0
+            createCorner(fill, 2)
+            
+            local value = default
+            local dragging = false
+            
+            slider.InputBegan:Connect(function(input)
+                if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                    dragging = true
+                    local percent = math.clamp((input.Position.X - slider.AbsolutePosition.X) / slider.AbsoluteSize.X, 0, 1)
+                    value = min + (max - min) * percent
+                    value = math.floor(value)
+                    fill.Size = UDim2.new(percent, 0, 1, 0)
+                    textLabel.Text = label .. ": " .. tostring(value)
+                    if callback then callback(value) end
+                end
+            end)
+            
+            game:GetService("UserInputService").InputChanged:Connect(function(input)
+                if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+                    local percent = math.clamp((input.Position.X - slider.AbsolutePosition.X) / slider.AbsoluteSize.X, 0, 1)
+                    value = min + (max - min) * percent
+                    value = math.floor(value)
+                    fill.Size = UDim2.new(percent, 0, 1, 0)
+                    textLabel.Text = label .. ": " .. tostring(value)
+                    if callback then callback(value) end
+                end
+            end)
+            
+            game:GetService("UserInputService").InputEnded:Connect(function(input)
+                if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                    dragging = false
+                end
+            end)
+            
+            return frame
+        end,
+        
+        -- ========== ADD LABEL ==========
+        AddLabel = function(self, text, color)
+            local label = Instance.new("TextLabel")
+            label.Parent = self._content
+            label.Size = UDim2.new(1, -20, 0, 25)
+            label.BackgroundTransparency = 1
+            label.Text = text
+            label.TextColor3 = color or Theme.AccentYellow
+            label.TextSize = 13
+            label.Font = Enum.Font.GothamBold
+            label.TextXAlignment = Enum.TextXAlignment.Left
+            return label
+        end,
+        
+        -- ========== ADD SEPARATOR ==========
+        AddSeparator = function(self)
+            local sep = Instance.new("Frame")
+            sep.Parent = self._content
+            sep.Size = UDim2.new(1, -20, 0, 1)
+            sep.BackgroundColor3 = Color3.fromRGB(50, 50, 70)
+            sep.BorderSizePixel = 0
+            return sep
+        end
+    }
 end
 
--- Internal: get current content Y position
-function MobileUI:GetContentY()
-    return _contentY
-end
-
--- Internal: increment content Y
-function MobileUI:IncContentY(amount)
-    _contentY = _contentY + amount
-end
-
--- Internal: reset content Y
-function MobileUI:ResetContentY()
-    _contentY = 110
-end
-
--- Internal: check if visible
-function MobileUI:IsVisible()
-    return _visible
-end
-
--- Get screen width
-function MobileUI:ScreenWidth()
-    return _screen.X
-end
-
--- Get screen height
-function MobileUI:ScreenHeight()
-    return _screen.Y
-end
-
--- Register element to tab
-function MobileUI:RegisterElement(tabIndex, element)
-    if _tabs[tabIndex] then
-        table.insert(_tabs[tabIndex].Elements, element)
+-- ========== UTILITY FUNCTIONS ==========
+function DemoxLib:ToggleGUI()
+    if toggleButton then
+        toggleButton.MouseButton1Click:Fire()
     end
 end
 
-return MobileUI
+function DemoxLib:SetTheme(theme)
+    for k, v in pairs(theme) do
+        if Theme[k] then
+            Theme[k] = v
+        end
+    end
+end
+
+function DemoxLib:GetTheme()
+    return Theme
+end
+
+return DemoxLib
