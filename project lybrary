@@ -1,5 +1,7 @@
 -- ============================================
--- DEMOX GUI LIBRARY v3.0 (SIMPLE & WORKING)
+-- DEMOX GUI LIBRARY v3.1 (ANTI DELETE)
+-- Buat bikin GUI tab system dengan mudah
+-- Fitur: Anti delete, GUI gak bisa dihapus
 -- by Demox_Ai'CvA057xp
 -- ============================================
 
@@ -14,7 +16,6 @@ local scrollFrame = nil
 local toggleBtn = nil
 local isOpen = false
 local allTabs = {}
-local currentTab = nil
 
 -- Warna
 local colors = {
@@ -36,9 +37,79 @@ local function round(obj, r)
     c.Parent = obj
 end
 
+-- ========== ANTI DELETE SYSTEM ==========
+local antiDeleteActive = false
+local antiDeleteConnections = {}
+
+local function restoreGUI()
+    if gui and gui.Parent then return end
+    
+    local player = game.Players.LocalPlayer
+    local playerGui = player:FindFirstChild("PlayerGui")
+    
+    if gui and not gui.Parent then
+        gui.Parent = playerGui
+        print("🛡️ GUI restored by Anti-Delete")
+    end
+end
+
+local function setupAntiDelete()
+    if antiDeleteActive then return end
+    antiDeleteActive = true
+    
+    local player = game.Players.LocalPlayer
+    local playerGui = player:FindFirstChild("PlayerGui")
+    
+    if not playerGui then return end
+    
+    -- Deteksi ketika GUI dihapus
+    local descendantRemovingConn = playerGui.DescendantRemoving:Connect(function(descendant)
+        if descendant == gui or (gui and descendant:IsDescendantOf(gui)) then
+            task.wait(0.05)
+            restoreGUI()
+        end
+    end)
+    table.insert(antiDeleteConnections, descendantRemovingConn)
+    
+    -- Backup tiap beberapa detik
+    local backupConn = game:GetService("RunService").Stepped:Connect(function()
+        if gui and not gui.Parent then
+            restoreGUI()
+        end
+    end)
+    table.insert(antiDeleteConnections, backupConn)
+    
+    -- Proteksi property
+    if gui then
+        local function protectGUI()
+            pcall(function()
+                if gui then
+                    gui.ResetOnSpawn = false
+                    gui.DisplayOrder = -100
+                end
+            end)
+        end
+        
+        protectGUI()
+        local propertyConn = gui:GetPropertyChangedSignal("ResetOnSpawn"):Connect(protectGUI)
+        table.insert(antiDeleteConnections, propertyConn)
+    end
+end
+
+local function stopAntiDelete()
+    if not antiDeleteActive then return end
+    antiDeleteActive = false
+    
+    for _, conn in pairs(antiDeleteConnections) do
+        pcall(function() conn:Disconnect() end)
+    end
+    antiDeleteConnections = {}
+end
+-- ========== AKHIR ANTI DELETE ==========
+
 -- ========== INIT GUI ==========
 function DemoxLib:Init(title)
-    if gui then return end
+    if gui then return self end
     
     local player = game.Players.LocalPlayer
     
@@ -47,6 +118,7 @@ function DemoxLib:Init(title)
     gui.Name = "DemoxGUI"
     gui.Parent = player:WaitForChild("PlayerGui")
     gui.ResetOnSpawn = false
+    gui.DisplayOrder = -100  -- Biar di atas GUI lain
     
     -- Frame utama
     mainFrame = Instance.new("Frame")
@@ -110,7 +182,7 @@ function DemoxLib:Init(title)
     toggleBtn = Instance.new("TextButton")
     toggleBtn.Parent = gui
     toggleBtn.Size = UDim2.new(0, 60, 0, 60)
-    toggleBtn.Position = UDim2.new(0.5, 450, 0.5, -250)
+    toggleBtn.Position = UDim2.new(0.5, 435, 0.5, -255)
     toggleBtn.BackgroundColor3 = Color3.fromRGB(35, 35, 55)
     toggleBtn.Text = "⚡"
     toggleBtn.TextColor3 = colors.text
@@ -124,6 +196,9 @@ function DemoxLib:Init(title)
         toggleBtn.Text = isOpen and "⚡" or "▶"
         toggleBtn.BackgroundColor3 = isOpen and Color3.fromRGB(35, 35, 55) or Color3.fromRGB(80, 40, 60)
     end)
+    
+    -- Aktifkan anti delete setelah GUI dibuat
+    setupAntiDelete()
     
     return self
 end
@@ -329,7 +404,7 @@ function DemoxLib:Tab(name, icon)
     return tabMethods
 end
 
--- ========== UTILITY ==========
+-- ========== UTILITY FUNCTIONS ==========
 function DemoxLib:ToggleGUI()
     if toggleBtn then
         toggleBtn.MouseButton1Click:Fire()
@@ -337,10 +412,21 @@ function DemoxLib:ToggleGUI()
 end
 
 function DemoxLib:Close()
+    stopAntiDelete()
     if gui then
         gui:Destroy()
         gui = nil
     end
+end
+
+function DemoxLib:EnableAntiDelete()
+    if gui then
+        setupAntiDelete()
+    end
+end
+
+function DemoxLib:DisableAntiDelete()
+    stopAntiDelete()
 end
 
 return DemoxLib
