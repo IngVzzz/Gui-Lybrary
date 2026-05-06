@@ -1,398 +1,346 @@
 -- ============================================
--- DEMOX GUI LIBRARY v2.0 (FIXED - TAB MUNCUL)
--- Buat bikin GUI tab system dengan mudah
+-- DEMOX GUI LIBRARY v3.0 (SIMPLE & WORKING)
 -- by Demox_Ai'CvA057xp
 -- ============================================
 
 local DemoxLib = {}
-local screenGui = nil
+
+-- Variabel global
+local gui = nil
 local mainFrame = nil
 local leftPanel = nil
-local scrollingFrame = nil
-local scrollLayout = nil
-local tabButtons = {}
-local tabContents = {}
-local toggleButton = nil
+local rightPanel = nil
+local scrollFrame = nil
+local toggleBtn = nil
 local isOpen = false
+local allTabs = {}
+local currentTab = nil
 
--- Warna tema (bisa lo ganti)
-local Theme = {
-    Background = Color3.fromRGB(20, 20, 30),
-    PanelLeft = Color3.fromRGB(25, 25, 38),
-    TabActive = Color3.fromRGB(80, 80, 120),
-    TabInactive = Color3.fromRGB(35, 35, 50),
-    ButtonBg = Color3.fromRGB(40, 40, 60),
-    ButtonActive = Color3.fromRGB(0, 100, 0),
-    TextPrimary = Color3.fromRGB(255, 255, 255),
-    TextDim = Color3.fromRGB(180, 180, 200),
-    AccentBlue = Color3.fromRGB(100, 100, 255),
-    AccentRed = Color3.fromRGB(255, 100, 100),
-    AccentGreen = Color3.fromRGB(100, 255, 100),
-    AccentYellow = Color3.fromRGB(255, 200, 100)
+-- Warna
+local colors = {
+    bg = Color3.fromRGB(20, 20, 30),
+    left = Color3.fromRGB(25, 25, 38),
+    tabActive = Color3.fromRGB(80, 80, 120),
+    tabInactive = Color3.fromRGB(35, 35, 50),
+    btnBg = Color3.fromRGB(40, 40, 60),
+    btnActive = Color3.fromRGB(0, 100, 0),
+    text = Color3.fromRGB(255, 255, 255),
+    textDim = Color3.fromRGB(180, 180, 200),
+    accent = Color3.fromRGB(100, 100, 255)
 }
 
--- ========== FUNGSI UTILITY ==========
-local function createCorner(obj, radius)
-    local corner = Instance.new("UICorner")
-    corner.Parent = obj
-    corner.CornerRadius = UDim.new(0, radius)
-    return corner
-end
-
-local function createStroke(obj, color, thickness, transparency)
-    local stroke = Instance.new("UIStroke")
-    stroke.Parent = obj
-    stroke.Color = color or Theme.AccentBlue
-    stroke.Thickness = thickness or 1
-    stroke.Transparency = transparency or 0.5
-    return stroke
-end
-
--- ========== UPDATE POSISI TAB OTOMATIS ==========
-local function updateTabPositions()
-    local y = 10
-    for _, tabData in pairs(tabButtons) do
-        if tabData and tabData.button then
-            tabData.button.Position = UDim2.new(0, 5, 0, y)
-            y = y + 45
-        end
-    end
+-- Fungsi bikin pojok melengkung
+local function round(obj, r)
+    local c = Instance.new("UICorner")
+    c.CornerRadius = UDim.new(0, r)
+    c.Parent = obj
 end
 
 -- ========== INIT GUI ==========
 function DemoxLib:Init(title)
-    if screenGui then return self end
+    if gui then return end
     
-    local Players = game:GetService("Players")
-    local LocalPlayer = Players.LocalPlayer
+    local player = game.Players.LocalPlayer
     
-    screenGui = Instance.new("ScreenGui")
-    screenGui.Name = "DemoxGUI"
-    screenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
-    screenGui.ResetOnSpawn = false
+    -- ScreenGui
+    gui = Instance.new("ScreenGui")
+    gui.Name = "DemoxGUI"
+    gui.Parent = player:WaitForChild("PlayerGui")
+    gui.ResetOnSpawn = false
     
     -- Frame utama
     mainFrame = Instance.new("Frame")
-    mainFrame.Parent = screenGui
+    mainFrame.Parent = gui
     mainFrame.Size = UDim2.new(0, 400, 0, 450)
     mainFrame.Position = UDim2.new(0.5, -200, 0.5, -225)
-    mainFrame.BackgroundColor3 = Theme.Background
+    mainFrame.BackgroundColor3 = colors.bg
     mainFrame.BackgroundTransparency = 0.05
     mainFrame.BorderSizePixel = 0
     mainFrame.Visible = false
-    mainFrame.Active = false
-    mainFrame.Draggable = false
-    
-    createCorner(mainFrame, 12)
-    createStroke(mainFrame, Theme.AccentBlue, 1, 0.4)
+    round(mainFrame, 12)
     
     -- Header
     local header = Instance.new("TextLabel")
     header.Parent = mainFrame
     header.Size = UDim2.new(1, 0, 0, 40)
-    header.Position = UDim2.new(0, 0, 0, 0)
     header.BackgroundColor3 = Color3.fromRGB(30, 30, 45)
-    header.BackgroundTransparency = 0
-    header.BorderSizePixel = 0
     header.Text = title or "DEMOX MENU ⚡"
-    header.TextColor3 = Theme.TextPrimary
+    header.TextColor3 = colors.text
     header.TextSize = 18
     header.Font = Enum.Font.GothamBold
-    createCorner(header, 12)
+    round(header, 12)
     
-    -- ⭐ PANEL KIRI (TAB) - DI SIMPAN GLOBAL
+    -- LEFT PANEL (TEMPAT TAB)
     leftPanel = Instance.new("Frame")
     leftPanel.Parent = mainFrame
     leftPanel.Size = UDim2.new(0, 100, 1, -40)
     leftPanel.Position = UDim2.new(0, 0, 0, 40)
-    leftPanel.BackgroundColor3 = Theme.PanelLeft
-    leftPanel.BackgroundTransparency = 0
+    leftPanel.BackgroundColor3 = colors.left
     leftPanel.BorderSizePixel = 0
     
-    -- Panel kanan (konten)
-    local rightPanel = Instance.new("Frame")
+    -- RIGHT PANEL (TEMPAT KONTEN)
+    rightPanel = Instance.new("Frame")
     rightPanel.Parent = mainFrame
     rightPanel.Size = UDim2.new(1, -100, 1, -40)
     rightPanel.Position = UDim2.new(0, 100, 0, 40)
-    rightPanel.BackgroundColor3 = Theme.Background
-    rightPanel.BackgroundTransparency = 0
+    rightPanel.BackgroundColor3 = colors.bg
     rightPanel.BorderSizePixel = 0
     
-    -- Scrolling frame untuk konten
-    scrollingFrame = Instance.new("ScrollingFrame")
-    scrollingFrame.Parent = rightPanel
-    scrollingFrame.Size = UDim2.new(1, -10, 1, -10)
-    scrollingFrame.Position = UDim2.new(0, 5, 0, 5)
-    scrollingFrame.BackgroundTransparency = 1
-    scrollingFrame.BorderSizePixel = 0
-    scrollingFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
-    scrollingFrame.ScrollBarThickness = 4
-    scrollingFrame.ScrollBarImageColor3 = Color3.fromRGB(100, 100, 150)
+    -- SCROLLING FRAME
+    scrollFrame = Instance.new("ScrollingFrame")
+    scrollFrame.Parent = rightPanel
+    scrollFrame.Size = UDim2.new(1, -10, 1, -10)
+    scrollFrame.Position = UDim2.new(0, 5, 0, 5)
+    scrollFrame.BackgroundTransparency = 1
+    scrollFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
+    scrollFrame.ScrollBarThickness = 4
     
-    scrollLayout = Instance.new("UIListLayout")
-    scrollLayout.Parent = scrollingFrame
-    scrollLayout.SortOrder = Enum.SortOrder.LayoutOrder
-    scrollLayout.Padding = UDim.new(0, 8)
+    -- Layout untuk konten
+    local layout = Instance.new("UIListLayout")
+    layout.Parent = scrollFrame
+    layout.Padding = UDim.new(0, 8)
+    layout.SortOrder = Enum.SortOrder.LayoutOrder
     
-    -- Tombol toggle (pojok kiri bawah)
-    toggleButton = Instance.new("TextButton")
-    toggleButton.Parent = screenGui
-    toggleButton.Position = UDim2.new(0.02, 0, 0.85, 0)
-    toggleButton.Size = UDim2.new(0, 60, 0, 60)
-    toggleButton.BackgroundColor3 = Color3.fromRGB(35, 35, 55)
-    toggleButton.BackgroundTransparency = 0
-    toggleButton.BorderSizePixel = 0
-    toggleButton.Text = "⚡"
-    toggleButton.TextColor3 = Theme.TextPrimary
-    toggleButton.TextSize = 30
-    toggleButton.Font = Enum.Font.GothamBold
-    toggleButton.Active = false
-    toggleButton.Draggable = false
-    createCorner(toggleButton, 60)
+    -- Update canvas size
+    layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+        scrollFrame.CanvasSize = UDim2.new(0, 0, 0, layout.AbsoluteContentSize.Y + 20)
+    end)
     
-    toggleButton.MouseButton1Click:Connect(function()
+    -- TOMBOL TOGGLE (pojok kiri bawah)
+    toggleBtn = Instance.new("TextButton")
+    toggleBtn.Parent = gui
+    toggleBtn.Size = UDim2.new(0, 60, 0, 60)
+    toggleBtn.Position = UDim2.new(0.02, 0, 0.85, 0)
+    toggleBtn.BackgroundColor3 = Color3.fromRGB(35, 35, 55)
+    toggleBtn.Text = "⚡"
+    toggleBtn.TextColor3 = colors.text
+    toggleBtn.TextSize = 30
+    toggleBtn.Font = Enum.Font.GothamBold
+    round(toggleBtn, 30)
+    
+    toggleBtn.MouseButton1Click:Connect(function()
         isOpen = not isOpen
         mainFrame.Visible = isOpen
-        toggleButton.Text = isOpen and "⚡" or "▶"
-        toggleButton.BackgroundColor3 = isOpen and Color3.fromRGB(35, 35, 55) or Color3.fromRGB(80, 40, 60)
+        toggleBtn.Text = isOpen and "⚡" or "▶"
+        toggleBtn.BackgroundColor3 = isOpen and Color3.fromRGB(35, 35, 55) or Color3.fromRGB(80, 40, 60)
     end)
     
     return self
 end
 
--- ========== CREATE TAB (FIXED) ==========
+-- ========== BUAT TAB BARU ==========
 function DemoxLib:Tab(name, icon)
     if not leftPanel then
-        error("GUI belum di-init! Panggil DemoxLib:Init() dulu.")
-        return
+        error("Init dulu bang! Panggil DemoxLib:Init()")
+        return {}
     end
     
-    local tabId = name:gsub("%s+", "_"):lower()
+    -- Bikin tombol tab
+    local btn = Instance.new("TextButton")
+    btn.Parent = leftPanel
+    btn.Size = UDim2.new(1, -10, 0, 40)
+    btn.Position = UDim2.new(0, 5, 0, 10 + (#allTabs * 45))
+    btn.BackgroundColor3 = colors.tabInactive
+    btn.Text = (icon or "📁") .. " " .. name
+    btn.TextColor3 = colors.textDim
+    btn.TextSize = 13
+    btn.Font = Enum.Font.Gotham
+    btn.BorderSizePixel = 0
+    round(btn, 8)
     
-    -- Buat tombol tab
-    local tabBtn = Instance.new("TextButton")
-    tabBtn.Parent = leftPanel  -- ⭐ LANGSUNG PAKE LEFTPANEL
-    tabBtn.Size = UDim2.new(1, -10, 0, 40)
-    tabBtn.BackgroundColor3 = Theme.TabInactive
-    tabBtn.Text = icon and icon .. " " .. name or name
-    tabBtn.TextColor3 = Theme.TextDim
-    tabBtn.TextSize = 13
-    tabBtn.Font = Enum.Font.Gotham
-    tabBtn.BorderSizePixel = 0
-    createCorner(tabBtn, 8)
-    
-    -- Simpan tab
-    tabButtons[tabId] = {button = tabBtn, name = name, icon = icon}
-    
-    -- Update posisi semua tab
-    updateTabPositions()
-    
-    -- Buat konten tab (hidden dulu)
+    -- Bikin konten tab (frame kosong)
     local content = Instance.new("Frame")
-    content.Parent = scrollingFrame
+    content.Parent = scrollFrame
     content.Size = UDim2.new(1, 0, 0, 0)
     content.BackgroundTransparency = 1
     content.Visible = false
-    content.LayoutOrder = 1
     
     local contentLayout = Instance.new("UIListLayout")
     contentLayout.Parent = content
-    contentLayout.SortOrder = Enum.SortOrder.LayoutOrder
     contentLayout.Padding = UDim.new(0, 8)
+    contentLayout.SortOrder = Enum.SortOrder.LayoutOrder
     
-    tabContents[tabId] = content
-    
-    -- Fungsi update scroll canvas
-    local function updateCanvas()
-        task.wait(0.05)
-        local totalHeight = contentLayout.AbsoluteContentSize.Y
-        scrollingFrame.CanvasSize = UDim2.new(0, 0, 0, totalHeight + 20)
-    end
-    
-    -- Event klik tab
-    tabBtn.MouseButton1Click:Connect(function()
-        -- Sembunyikan semua konten
-        for _, child in pairs(scrollingFrame:GetChildren()) do
-            if child:IsA("Frame") then
-                child.Visible = false
-            end
-        end
-        content.Visible = true
-        
-        -- Update tampilan tab
-        for _, t in pairs(tabButtons) do
-            t.button.BackgroundColor3 = Theme.TabInactive
-            t.button.TextColor3 = Theme.TextDim
-        end
-        tabBtn.BackgroundColor3 = Theme.TabActive
-        tabBtn.TextColor3 = Theme.TextPrimary
-        
-        -- Update canvas
-        updateCanvas()
-    end)
-    
-    -- Kalo tab pertama, aktifkan
-    local tabCount = 0
-    for _ in pairs(tabButtons) do tabCount = tabCount + 1 end
-    if tabCount == 1 then
-        tabBtn.MouseButton1Click:Fire()
-    end
-    
-    -- Update canvas kalo ada konten baru
-    contentLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(updateCanvas)
-    
-    -- Return object untuk nambahin komponen
-    return {
-        _content = content,
-        _layout = contentLayout,
-        
-        AddToggle = function(self, label, callback)
-            local toggleBtn = Instance.new("TextButton")
-            toggleBtn.Parent = self._content
-            toggleBtn.Size = UDim2.new(1, -20, 0, 35)
-            toggleBtn.BackgroundColor3 = Theme.ButtonBg
-            toggleBtn.Text = "🔘 " .. label .. ": OFF"
-            toggleBtn.TextColor3 = Theme.TextPrimary
-            toggleBtn.TextSize = 13
-            toggleBtn.Font = Enum.Font.Gotham
-            toggleBtn.BorderSizePixel = 0
-            createCorner(toggleBtn, 6)
-            
-            local state = false
-            toggleBtn.MouseButton1Click:Connect(function()
-                state = not state
-                toggleBtn.Text = state and "🟢 " .. label .. ": ON" or "🔘 " .. label .. ": OFF"
-                toggleBtn.BackgroundColor3 = state and Theme.ButtonActive or Theme.ButtonBg
-                if callback then callback(state) end
-            end)
-            
-            return toggleBtn
-        end,
-        
-        AddButton = function(self, label, callback)
-            local btn = Instance.new("TextButton")
-            btn.Parent = self._content
-            btn.Size = UDim2.new(1, -20, 0, 35)
-            btn.BackgroundColor3 = Theme.ButtonBg
-            btn.Text = label
-            btn.TextColor3 = Theme.TextPrimary
-            btn.TextSize = 13
-            btn.Font = Enum.Font.Gotham
-            btn.BorderSizePixel = 0
-            createCorner(btn, 6)
-            
-            btn.MouseButton1Click:Connect(function()
-                if callback then callback() end
-            end)
-            
-            return btn
-        end,
-        
-        AddSlider = function(self, label, min, max, default, callback)
-            local frame = Instance.new("Frame")
-            frame.Parent = self._content
-            frame.Size = UDim2.new(1, -20, 0, 55)
-            frame.BackgroundTransparency = 1
-            
-            local textLabel = Instance.new("TextLabel")
-            textLabel.Parent = frame
-            textLabel.Size = UDim2.new(1, 0, 0, 20)
-            textLabel.BackgroundTransparency = 1
-            textLabel.Text = label .. ": " .. tostring(default)
-            textLabel.TextColor3 = Theme.TextDim
-            textLabel.TextSize = 12
-            textLabel.TextXAlignment = Enum.TextXAlignment.Left
-            
-            local slider = Instance.new("Frame")
-            slider.Parent = frame
-            slider.Position = UDim2.new(0, 0, 0, 22)
-            slider.Size = UDim2.new(1, 0, 0, 4)
-            slider.BackgroundColor3 = Color3.fromRGB(50, 50, 70)
-            slider.BorderSizePixel = 0
-            createCorner(slider, 2)
-            
-            local fill = Instance.new("Frame")
-            fill.Parent = slider
-            fill.Size = UDim2.new((default - min) / (max - min), 0, 1, 0)
-            fill.BackgroundColor3 = Theme.AccentBlue
-            fill.BorderSizePixel = 0
-            createCorner(fill, 2)
-            
-            local value = default
-            local dragging = false
-            
-            local function updateValue(input)
-                local percent = math.clamp((input.Position.X - slider.AbsolutePosition.X) / slider.AbsoluteSize.X, 0, 1)
-                value = min + (max - min) * percent
-                value = math.floor(value)
-                fill.Size = UDim2.new(percent, 0, 1, 0)
-                textLabel.Text = label .. ": " .. tostring(value)
-                if callback then callback(value) end
-            end
-            
-            slider.InputBegan:Connect(function(input)
-                if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-                    dragging = true
-                    updateValue(input)
-                end
-            end)
-            
-            game:GetService("UserInputService").InputChanged:Connect(function(input)
-                if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
-                    updateValue(input)
-                end
-            end)
-            
-            game:GetService("UserInputService").InputEnded:Connect(function(input)
-                if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-                    dragging = false
-                end
-            end)
-            
-            return frame
-        end,
-        
-        AddLabel = function(self, text, color)
-            local label = Instance.new("TextLabel")
-            label.Parent = self._content
-            label.Size = UDim2.new(1, -20, 0, 25)
-            label.BackgroundTransparency = 1
-            label.Text = text
-            label.TextColor3 = color or Theme.AccentYellow
-            label.TextSize = 13
-            label.Font = Enum.Font.GothamBold
-            label.TextXAlignment = Enum.TextXAlignment.Left
-            return label
-        end,
-        
-        AddSeparator = function(self)
-            local sep = Instance.new("Frame")
-            sep.Parent = self._content
-            sep.Size = UDim2.new(1, -20, 0, 1)
-            sep.BackgroundColor3 = Color3.fromRGB(50, 50, 70)
-            sep.BorderSizePixel = 0
-            return sep
-        end
+    -- Simpan data tab
+    local tabData = {
+        button = btn,
+        content = content,
+        layout = contentLayout,
+        name = name
     }
-end
-
--- ========== UTILITY FUNCTIONS ==========
-function DemoxLib:ToggleGUI()
-    if toggleButton then
-        toggleButton.MouseButton1Click:Fire()
-    end
-end
-
-function DemoxLib:SetTheme(theme)
-    for k, v in pairs(theme) do
-        if Theme[k] then
-            Theme[k] = v
+    table.insert(allTabs, tabData)
+    
+    -- Fungsi ganti tab
+    local function selectTab()
+        -- Sembunyiin semua konten
+        for _, tab in ipairs(allTabs) do
+            tab.content.Visible = false
+            tab.button.BackgroundColor3 = colors.tabInactive
+            tab.button.TextColor3 = colors.textDim
         end
+        -- Tampilin konten yang dipilih
+        content.Visible = true
+        btn.BackgroundColor3 = colors.tabActive
+        btn.TextColor3 = colors.text
+        
+        -- Update scroll
+        task.wait()
+        scrollFrame.CanvasSize = UDim2.new(0, 0, 0, contentLayout.AbsoluteContentSize.Y + 20)
+    end
+    
+    btn.MouseButton1Click:Connect(selectTab)
+    
+    -- Kalo ini tab pertama, langsung aktifin
+    if #allTabs == 1 then
+        selectTab()
+    end
+    
+    -- Return methods buat nambahin komponen
+    local tabMethods = {}
+    
+    function tabMethods.AddToggle(self, label, callback)
+        local toggle = Instance.new("TextButton")
+        toggle.Parent = content
+        toggle.Size = UDim2.new(1, -20, 0, 35)
+        toggle.BackgroundColor3 = colors.btnBg
+        toggle.Text = "🔘 " .. label .. ": OFF"
+        toggle.TextColor3 = colors.text
+        toggle.TextSize = 13
+        toggle.Font = Enum.Font.Gotham
+        toggle.BorderSizePixel = 0
+        round(toggle, 6)
+        
+        local state = false
+        toggle.MouseButton1Click:Connect(function()
+            state = not state
+            toggle.Text = state and "🟢 " .. label .. ": ON" or "🔘 " .. label .. ": OFF"
+            toggle.BackgroundColor3 = state and colors.btnActive or colors.btnBg
+            if callback then callback(state) end
+        end)
+        
+        return toggle
+    end
+    
+    function tabMethods.AddButton(self, label, callback)
+        local btn = Instance.new("TextButton")
+        btn.Parent = content
+        btn.Size = UDim2.new(1, -20, 0, 35)
+        btn.BackgroundColor3 = colors.btnBg
+        btn.Text = label
+        btn.TextColor3 = colors.text
+        btn.TextSize = 13
+        btn.Font = Enum.Font.Gotham
+        btn.BorderSizePixel = 0
+        round(btn, 6)
+        
+        btn.MouseButton1Click:Connect(function()
+            if callback then callback() end
+        end)
+        
+        return btn
+    end
+    
+    function tabMethods.AddLabel(self, text, color)
+        local label = Instance.new("TextLabel")
+        label.Parent = content
+        label.Size = UDim2.new(1, -20, 0, 25)
+        label.BackgroundTransparency = 1
+        label.Text = text
+        label.TextColor3 = color or colors.accent
+        label.TextSize = 13
+        label.Font = Enum.Font.GothamBold
+        label.TextXAlignment = Enum.TextXAlignment.Left
+        return label
+    end
+    
+    function tabMethods.AddSeparator(self)
+        local sep = Instance.new("Frame")
+        sep.Parent = content
+        sep.Size = UDim2.new(1, -20, 0, 1)
+        sep.BackgroundColor3 = Color3.fromRGB(50, 50, 70)
+        sep.BorderSizePixel = 0
+        return sep
+    end
+    
+    function tabMethods.AddSlider(self, label, minVal, maxVal, defaultVal, callback)
+        local frame = Instance.new("Frame")
+        frame.Parent = content
+        frame.Size = UDim2.new(1, -20, 0, 55)
+        frame.BackgroundTransparency = 1
+        
+        local labelText = Instance.new("TextLabel")
+        labelText.Parent = frame
+        labelText.Size = UDim2.new(1, 0, 0, 20)
+        labelText.BackgroundTransparency = 1
+        labelText.Text = label .. ": " .. tostring(defaultVal)
+        labelText.TextColor3 = colors.textDim
+        labelText.TextSize = 12
+        labelText.TextXAlignment = Enum.TextXAlignment.Left
+        
+        local sliderBg = Instance.new("Frame")
+        sliderBg.Parent = frame
+        sliderBg.Position = UDim2.new(0, 0, 0, 22)
+        sliderBg.Size = UDim2.new(1, 0, 0, 4)
+        sliderBg.BackgroundColor3 = Color3.fromRGB(50, 50, 70)
+        sliderBg.BorderSizePixel = 0
+        round(sliderBg, 2)
+        
+        local fill = Instance.new("Frame")
+        fill.Parent = sliderBg
+        fill.Size = UDim2.new((defaultVal - minVal) / (maxVal - minVal), 0, 1, 0)
+        fill.BackgroundColor3 = colors.accent
+        fill.BorderSizePixel = 0
+        round(fill, 2)
+        
+        local currentVal = defaultVal
+        local dragging = false
+        
+        local userInput = game:GetService("UserInputService")
+        
+        local function update(input)
+            local percent = math.clamp((input.Position.X - sliderBg.AbsolutePosition.X) / sliderBg.AbsoluteSize.X, 0, 1)
+            currentVal = math.floor(minVal + (maxVal - minVal) * percent)
+            fill.Size = UDim2.new(percent, 0, 1, 0)
+            labelText.Text = label .. ": " .. tostring(currentVal)
+            if callback then callback(currentVal) end
+        end
+        
+        sliderBg.InputBegan:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                dragging = true
+                update(input)
+            end
+        end)
+        
+        userInput.InputChanged:Connect(function(input)
+            if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+                update(input)
+            end
+        end)
+        
+        userInput.InputEnded:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                dragging = false
+            end
+        end)
+        
+        return frame
+    end
+    
+    return tabMethods
+end
+
+-- ========== UTILITY ==========
+function DemoxLib:ToggleGUI()
+    if toggleBtn then
+        toggleBtn.MouseButton1Click:Fire()
     end
 end
 
-function DemoxLib:GetTheme()
-    return Theme
+function DemoxLib:Close()
+    if gui then
+        gui:Destroy()
+        gui = nil
+    end
 end
 
 return DemoxLib
