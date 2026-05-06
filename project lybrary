@@ -1,5 +1,5 @@
 -- ============================================
--- DEMOX GUI LIBRARY v1.0
+-- DEMOX GUI LIBRARY v2.0 (FIXED - TAB MUNCUL)
 -- Buat bikin GUI tab system dengan mudah
 -- by Demox_Ai'CvA057xp
 -- ============================================
@@ -7,11 +7,11 @@
 local DemoxLib = {}
 local screenGui = nil
 local mainFrame = nil
-local rightPanel = nil
+local leftPanel = nil
 local scrollingFrame = nil
 local scrollLayout = nil
 local tabButtons = {}
-local currentTab = nil
+local tabContents = {}
 local toggleButton = nil
 local isOpen = false
 
@@ -48,9 +48,20 @@ local function createStroke(obj, color, thickness, transparency)
     return stroke
 end
 
+-- ========== UPDATE POSISI TAB OTOMATIS ==========
+local function updateTabPositions()
+    local y = 10
+    for _, tabData in pairs(tabButtons) do
+        if tabData and tabData.button then
+            tabData.button.Position = UDim2.new(0, 5, 0, y)
+            y = y + 45
+        end
+    end
+end
+
 -- ========== INIT GUI ==========
 function DemoxLib:Init(title)
-    if screenGui then return end
+    if screenGui then return self end
     
     local Players = game:GetService("Players")
     local LocalPlayer = Players.LocalPlayer
@@ -89,8 +100,8 @@ function DemoxLib:Init(title)
     header.Font = Enum.Font.GothamBold
     createCorner(header, 12)
     
-    -- Panel kiri (tab)
-    local leftPanel = Instance.new("Frame")
+    -- ⭐ PANEL KIRI (TAB) - DI SIMPAN GLOBAL
+    leftPanel = Instance.new("Frame")
     leftPanel.Parent = mainFrame
     leftPanel.Size = UDim2.new(0, 100, 1, -40)
     leftPanel.Position = UDim2.new(0, 0, 0, 40)
@@ -99,7 +110,7 @@ function DemoxLib:Init(title)
     leftPanel.BorderSizePixel = 0
     
     -- Panel kanan (konten)
-    rightPanel = Instance.new("Frame")
+    local rightPanel = Instance.new("Frame")
     rightPanel.Parent = mainFrame
     rightPanel.Size = UDim2.new(1, -100, 1, -40)
     rightPanel.Position = UDim2.new(0, 100, 0, 40)
@@ -123,7 +134,7 @@ function DemoxLib:Init(title)
     scrollLayout.SortOrder = Enum.SortOrder.LayoutOrder
     scrollLayout.Padding = UDim.new(0, 8)
     
-    -- Tombol toggle
+    -- Tombol toggle (pojok kiri bawah)
     toggleButton = Instance.new("TextButton")
     toggleButton.Parent = screenGui
     toggleButton.Position = UDim2.new(0.02, 0, 0.85, 0)
@@ -149,34 +160,18 @@ function DemoxLib:Init(title)
     return self
 end
 
--- ========== CREATE TAB ==========
+-- ========== CREATE TAB (FIXED) ==========
 function DemoxLib:Tab(name, icon)
+    if not leftPanel then
+        error("GUI belum di-init! Panggil DemoxLib:Init() dulu.")
+        return
+    end
+    
     local tabId = name:gsub("%s+", "_"):lower()
     
+    -- Buat tombol tab
     local tabBtn = Instance.new("TextButton")
-    tabBtn.Parent = screenGui:FindFirstChild("DemoxGUI"):FindFirstChild("MainFrame"):FindFirstChild("Frame"):WaitForChild("Frame") or 
-                   mainFrame:FindFirstChildWhichIsA("Frame") or mainFrame:FindFirstChild("LeftPanel")
-    -- Cari left panel
-    local leftPanel = nil
-    for _, child in pairs(mainFrame:GetChildren()) do
-        if child:IsA("Frame") and child.Size == UDim2.new(0, 100, 1, -40) then
-            leftPanel = child
-            break
-        end
-    end
-    
-    if leftPanel then
-        tabBtn.Parent = leftPanel
-    else
-        -- Fallback: cari panel kiri
-        for _, child in pairs(mainFrame:GetDescendants()) do
-            if child:IsA("Frame") and child.Size == UDim2.new(0, 100, 1, -40) then
-                tabBtn.Parent = child
-                break
-            end
-        end
-    end
-    
+    tabBtn.Parent = leftPanel  -- ⭐ LANGSUNG PAKE LEFTPANEL
     tabBtn.Size = UDim2.new(1, -10, 0, 40)
     tabBtn.BackgroundColor3 = Theme.TabInactive
     tabBtn.Text = icon and icon .. " " .. name or name
@@ -186,12 +181,11 @@ function DemoxLib:Tab(name, icon)
     tabBtn.BorderSizePixel = 0
     createCorner(tabBtn, 8)
     
-    -- Update posisi tombol tab
-    local btnCount = 0
-    for _, btn in pairs(tabButtons) do btnCount = btnCount + 1 end
-    tabBtn.Position = UDim2.new(0, 5, 0, 10 + (btnCount * 45))
-    
+    -- Simpan tab
     tabButtons[tabId] = {button = tabBtn, name = name, icon = icon}
+    
+    -- Update posisi semua tab
+    updateTabPositions()
     
     -- Buat konten tab (hidden dulu)
     local content = Instance.new("Frame")
@@ -206,6 +200,16 @@ function DemoxLib:Tab(name, icon)
     contentLayout.SortOrder = Enum.SortOrder.LayoutOrder
     contentLayout.Padding = UDim.new(0, 8)
     
+    tabContents[tabId] = content
+    
+    -- Fungsi update scroll canvas
+    local function updateCanvas()
+        task.wait(0.05)
+        local totalHeight = contentLayout.AbsoluteContentSize.Y
+        scrollingFrame.CanvasSize = UDim2.new(0, 0, 0, totalHeight + 20)
+    end
+    
+    -- Event klik tab
     tabBtn.MouseButton1Click:Connect(function()
         -- Sembunyikan semua konten
         for _, child in pairs(scrollingFrame:GetChildren()) do
@@ -214,6 +218,7 @@ function DemoxLib:Tab(name, icon)
             end
         end
         content.Visible = true
+        
         -- Update tampilan tab
         for _, t in pairs(tabButtons) do
             t.button.BackgroundColor3 = Theme.TabInactive
@@ -222,23 +227,25 @@ function DemoxLib:Tab(name, icon)
         tabBtn.BackgroundColor3 = Theme.TabActive
         tabBtn.TextColor3 = Theme.TextPrimary
         
-        -- Update canvas size
-        scrollLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-            scrollingFrame.CanvasSize = UDim2.new(0, 0, 0, contentLayout.AbsoluteContentSize.Y + 10)
-        end)
-        contentLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Fire()
+        -- Update canvas
+        updateCanvas()
     end)
     
-    -- Jika tab pertama, aktifkan
-    if #tabButtons == 1 then
+    -- Kalo tab pertama, aktifkan
+    local tabCount = 0
+    for _ in pairs(tabButtons) do tabCount = tabCount + 1 end
+    if tabCount == 1 then
         tabBtn.MouseButton1Click:Fire()
     end
     
+    -- Update canvas kalo ada konten baru
+    contentLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(updateCanvas)
+    
+    -- Return object untuk nambahin komponen
     return {
         _content = content,
         _layout = contentLayout,
         
-        -- ========== ADD TOGGLE ==========
         AddToggle = function(self, label, callback)
             local toggleBtn = Instance.new("TextButton")
             toggleBtn.Parent = self._content
@@ -262,7 +269,6 @@ function DemoxLib:Tab(name, icon)
             return toggleBtn
         end,
         
-        -- ========== ADD BUTTON ==========
         AddButton = function(self, label, callback)
             local btn = Instance.new("TextButton")
             btn.Parent = self._content
@@ -282,7 +288,6 @@ function DemoxLib:Tab(name, icon)
             return btn
         end,
         
-        -- ========== ADD SLIDER ==========
         AddSlider = function(self, label, min, max, default, callback)
             local frame = Instance.new("Frame")
             frame.Parent = self._content
@@ -316,26 +321,25 @@ function DemoxLib:Tab(name, icon)
             local value = default
             local dragging = false
             
+            local function updateValue(input)
+                local percent = math.clamp((input.Position.X - slider.AbsolutePosition.X) / slider.AbsoluteSize.X, 0, 1)
+                value = min + (max - min) * percent
+                value = math.floor(value)
+                fill.Size = UDim2.new(percent, 0, 1, 0)
+                textLabel.Text = label .. ": " .. tostring(value)
+                if callback then callback(value) end
+            end
+            
             slider.InputBegan:Connect(function(input)
                 if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
                     dragging = true
-                    local percent = math.clamp((input.Position.X - slider.AbsolutePosition.X) / slider.AbsoluteSize.X, 0, 1)
-                    value = min + (max - min) * percent
-                    value = math.floor(value)
-                    fill.Size = UDim2.new(percent, 0, 1, 0)
-                    textLabel.Text = label .. ": " .. tostring(value)
-                    if callback then callback(value) end
+                    updateValue(input)
                 end
             end)
             
             game:GetService("UserInputService").InputChanged:Connect(function(input)
                 if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
-                    local percent = math.clamp((input.Position.X - slider.AbsolutePosition.X) / slider.AbsoluteSize.X, 0, 1)
-                    value = min + (max - min) * percent
-                    value = math.floor(value)
-                    fill.Size = UDim2.new(percent, 0, 1, 0)
-                    textLabel.Text = label .. ": " .. tostring(value)
-                    if callback then callback(value) end
+                    updateValue(input)
                 end
             end)
             
@@ -348,7 +352,6 @@ function DemoxLib:Tab(name, icon)
             return frame
         end,
         
-        -- ========== ADD LABEL ==========
         AddLabel = function(self, text, color)
             local label = Instance.new("TextLabel")
             label.Parent = self._content
@@ -362,7 +365,6 @@ function DemoxLib:Tab(name, icon)
             return label
         end,
         
-        -- ========== ADD SEPARATOR ==========
         AddSeparator = function(self)
             local sep = Instance.new("Frame")
             sep.Parent = self._content
