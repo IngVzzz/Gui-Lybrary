@@ -110,7 +110,7 @@ function DemoxLib:Init(title)
     toggleBtn = Instance.new("TextButton")
     toggleBtn.Parent = gui
     toggleBtn.Size = UDim2.new(0, 60, 0, 60)
-    toggleButton.Position = UDim2.new(0.935, 0, 0.85, -400)
+    toggleBtn.Position = UDim2.new(0.5, 450, 0.5, -250)
     toggleBtn.BackgroundColor3 = Color3.fromRGB(35, 35, 55)
     toggleBtn.Text = "⚡"
     toggleBtn.TextColor3 = colors.text
