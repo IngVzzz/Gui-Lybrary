@@ -1,7 +1,6 @@
 -- ============================================
--- DEMOX GUI LIBRARY v3.1 (ANTI DELETE)
--- Buat bikin GUI tab system dengan mudah
--- Fitur: Anti delete, GUI gak bisa dihapus
+-- DEMOX GUI LIBRARY v3.3 (CORE GUI ONLY)
+-- Parent: CoreGui (lebih aman dari delete)
 -- by Demox_Ai'CvA057xp
 -- ============================================
 
@@ -37,88 +36,18 @@ local function round(obj, r)
     c.Parent = obj
 end
 
--- ========== ANTI DELETE SYSTEM ==========
-local antiDeleteActive = false
-local antiDeleteConnections = {}
-
-local function restoreGUI()
-    if gui and gui.Parent then return end
-    
-    local player = game.Players.LocalPlayer
-    local playerGui = player:FindFirstChild("PlayerGui")
-    
-    if gui and not gui.Parent then
-        gui.Parent = playerGui
-        print("🛡️ GUI restored by Anti-Delete")
-    end
-end
-
-local function setupAntiDelete()
-    if antiDeleteActive then return end
-    antiDeleteActive = true
-    
-    local player = game.Players.LocalPlayer
-    local playerGui = player:FindFirstChild("PlayerGui")
-    
-    if not playerGui then return end
-    
-    -- Deteksi ketika GUI dihapus
-    local descendantRemovingConn = playerGui.DescendantRemoving:Connect(function(descendant)
-        if descendant == gui or (gui and descendant:IsDescendantOf(gui)) then
-            task.wait(0.05)
-            restoreGUI()
-        end
-    end)
-    table.insert(antiDeleteConnections, descendantRemovingConn)
-    
-    -- Backup tiap beberapa detik
-    local backupConn = game:GetService("RunService").Stepped:Connect(function()
-        if gui and not gui.Parent then
-            restoreGUI()
-        end
-    end)
-    table.insert(antiDeleteConnections, backupConn)
-    
-    -- Proteksi property
-    if gui then
-        local function protectGUI()
-            pcall(function()
-                if gui then
-                    gui.ResetOnSpawn = false
-                    gui.DisplayOrder = -100
-                end
-            end)
-        end
-        
-        protectGUI()
-        local propertyConn = gui:GetPropertyChangedSignal("ResetOnSpawn"):Connect(protectGUI)
-        table.insert(antiDeleteConnections, propertyConn)
-    end
-end
-
-local function stopAntiDelete()
-    if not antiDeleteActive then return end
-    antiDeleteActive = false
-    
-    for _, conn in pairs(antiDeleteConnections) do
-        pcall(function() conn:Disconnect() end)
-    end
-    antiDeleteConnections = {}
-end
--- ========== AKHIR ANTI DELETE ==========
-
--- ========== INIT GUI ==========
+-- ========== INIT GUI (Parent CoreGui) ==========
 function DemoxLib:Init(title)
     if gui then return self end
     
-    local player = game.Players.LocalPlayer
+    local coreGui = game:GetService("CoreGui")
     
-    -- ScreenGui
+    -- ScreenGui dengan parent CoreGui
     gui = Instance.new("ScreenGui")
     gui.Name = "DemoxGUI"
-    gui.Parent = player:WaitForChild("PlayerGui")
+    gui.Parent = coreGui
     gui.ResetOnSpawn = false
-    gui.DisplayOrder = -100  -- Biar di atas GUI lain
+    gui.IgnoreGuiInset = true
     
     -- Frame utama
     mainFrame = Instance.new("Frame")
@@ -135,7 +64,10 @@ function DemoxLib:Init(title)
     local header = Instance.new("TextLabel")
     header.Parent = mainFrame
     header.Size = UDim2.new(1, 0, 0, 40)
+    header.Position = UDim2.new(0, 0, 0, 0)
     header.BackgroundColor3 = Color3.fromRGB(30, 30, 45)
+    header.BackgroundTransparency = 0
+    header.BorderSizePixel = 0
     header.Text = title or "DEMOX MENU ⚡"
     header.TextColor3 = colors.text
     header.TextSize = 18
@@ -148,6 +80,7 @@ function DemoxLib:Init(title)
     leftPanel.Size = UDim2.new(0, 100, 1, -40)
     leftPanel.Position = UDim2.new(0, 0, 0, 40)
     leftPanel.BackgroundColor3 = colors.left
+    leftPanel.BackgroundTransparency = 0
     leftPanel.BorderSizePixel = 0
     
     -- RIGHT PANEL (TEMPAT KONTEN)
@@ -156,6 +89,7 @@ function DemoxLib:Init(title)
     rightPanel.Size = UDim2.new(1, -100, 1, -40)
     rightPanel.Position = UDim2.new(0, 100, 0, 40)
     rightPanel.BackgroundColor3 = colors.bg
+    rightPanel.BackgroundTransparency = 0
     rightPanel.BorderSizePixel = 0
     
     -- SCROLLING FRAME
@@ -164,6 +98,7 @@ function DemoxLib:Init(title)
     scrollFrame.Size = UDim2.new(1, -10, 1, -10)
     scrollFrame.Position = UDim2.new(0, 5, 0, 5)
     scrollFrame.BackgroundTransparency = 1
+    scrollFrame.BorderSizePixel = 0
     scrollFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
     scrollFrame.ScrollBarThickness = 4
     
@@ -184,6 +119,8 @@ function DemoxLib:Init(title)
     toggleBtn.Size = UDim2.new(0, 60, 0, 60)
     toggleBtn.Position = UDim2.new(0.5, 435, 0.5, -255)
     toggleBtn.BackgroundColor3 = Color3.fromRGB(35, 35, 55)
+    toggleBtn.BackgroundTransparency = 0
+    toggleBtn.BorderSizePixel = 0
     toggleBtn.Text = "⚡"
     toggleBtn.TextColor3 = colors.text
     toggleBtn.TextSize = 30
@@ -197,8 +134,7 @@ function DemoxLib:Init(title)
         toggleBtn.BackgroundColor3 = isOpen and Color3.fromRGB(35, 35, 55) or Color3.fromRGB(80, 40, 60)
     end)
     
-    -- Aktifkan anti delete setelah GUI dibuat
-    setupAntiDelete()
+    print("✅ DemoxGUI Initialized (Parent: CoreGui)")
     
     return self
 end
@@ -412,21 +348,14 @@ function DemoxLib:ToggleGUI()
 end
 
 function DemoxLib:Close()
-    stopAntiDelete()
     if gui then
-        gui:Destroy()
+        pcall(function() gui:Destroy() end)
         gui = nil
     end
 end
 
-function DemoxLib:EnableAntiDelete()
-    if gui then
-        setupAntiDelete()
-    end
-end
-
-function DemoxLib:DisableAntiDelete()
-    stopAntiDelete()
+function DemoxLib:GetCoreGui()
+    return gui
 end
 
 return DemoxLib
