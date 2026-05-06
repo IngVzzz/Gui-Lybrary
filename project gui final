@@ -1,17 +1,13 @@
 -- ============================================
 -- DEMOX GUI - VIOLENCE DISTRICT
--- FINAL VERSION (ALL TOGGLES READY)
+-- FINAL VERSION (ALL ORIGINAL SCRIPTS)
 -- By Demox_Ai'CvA057xp
--- Parent: CoreGui (Anti Delete)
 -- ============================================
 
--- Load library dari GitHub
 local DemoxLib = loadstring(game:HttpGet("https://raw.githubusercontent.com/IngVzzz/Gui-Lybrary/refs/heads/main/project%20lybrary"))()
-
--- Init GUI
 DemoxLib:Init("VIOLENCE DISTRICT 🩸")
 
--- ========== NO CLIP SCRIPT ==========
+-- ========== NO CLIP SCRIPT (ASLI) ==========
 local PlayersNoclip = game:GetService("Players")
 local LocalPlayerNoclip = PlayersNoclip.LocalPlayer
 local RunServiceNoclip = game:GetService("RunService")
@@ -135,7 +131,7 @@ local function stopWalkSpeed()
 end
 -- ========== AKHIR WALK SPEED ==========
 
--- ========== BYPASS ZOOM SCRIPT ==========
+-- ========== BYPASS ZOOM SCRIPT (ASLI) ==========
 local PlayersZoom = game:GetService("Players")
 local LocalPlayerZoom = PlayersZoom.LocalPlayer
 local RunServiceZoom = game:GetService("RunService")
@@ -208,7 +204,7 @@ local function startZoom() enableZoomBypass() end
 local function stopZoom() disableZoomBypass() end
 -- ========== AKHIR BYPASS ZOOM ==========
 
--- ========== CROUSHAIR SCRIPT ==========
+-- ========== CROUSHAIR SCRIPT (ASLI) ==========
 local PlayersCross = game:GetService("Players")
 local LocalPlayerCross = PlayersCross.LocalPlayer
 local playerGui = LocalPlayerCross:WaitForChild("PlayerGui")
@@ -253,7 +249,7 @@ local function stopCroushair()
 end
 -- ========== AKHIR CROUSHAIR ==========
 
--- ========== MOONWALK SCRIPT ==========
+-- ========== MOONWALK SCRIPT (ASLI) ==========
 local PlayersMoon = game:GetService("Players")
 local LocalPlayerMoon = PlayersMoon.LocalPlayer
 local RunServiceMoon = game:GetService("RunService")
@@ -406,7 +402,7 @@ local function stopMoonwalkSystem()
 end
 -- ========== AKHIR MOONWALK ==========
 
--- ========== ESP PLAYER SCRIPT ==========
+-- ========== ESP PLAYER SCRIPT (ASLI) ==========
 local PlayersESP = game:GetService("Players")
 local LocalPlayerESP = PlayersESP.LocalPlayer
 local ESP = { Players = { ["Killer"] = {Color = Color3.fromRGB(255, 0, 0), On = true}, ["Survivor"] = {Color = Color3.fromRGB(0, 255, 255), On = true} } }
@@ -480,13 +476,7 @@ local function disableESP()
 end
 -- ========== AKHIR ESP ==========
 
--- ========== AIMBOT SCRIPT (ASLI DARI LO, GAK GUE UBAH) ==========
-local Players = game:GetService("Players")
-local LocalPlayer = Players.LocalPlayer
-local RunService = game:GetService("RunService")
-local UserInputService = game:GetService("UserInputService")
-local CoreGui = game:GetService("CoreGui")
-
+-- ==================== AIMBOT ====================
 local aimbotCamera = workspace.CurrentCamera
 local aimbotEnabled = false
 local currentTarget = nil
@@ -546,23 +536,21 @@ local function getClosestTarget()
     local myRoot = myChar:FindFirstChild("HumanoidRootPart")
     if not myRoot then return nil end
     
-    for _, p in pairs(Players:GetPlayers()) do
+    for _, p in pairs(PlayersService:GetPlayers()) do
         if p ~= LocalPlayer then
             local char = p.Character
             if char then
                 local root = char:FindFirstChild("HumanoidRootPart")
                 local hum = char:FindFirstChild("Humanoid")
                 if root and hum and hum.Health > 0 then
-                    if p.Team and p.Team.Name == "Survivors" then
-                        local dist3D = (myRoot.Position - root.Position).Magnitude
-                        if dist3D <= maxLockDistance then
-                            local screenPoint, onScreen = aimbotCamera:WorldToViewportPoint(root.Position)
-                            if onScreen then
-                                local screenDist = (Vector2.new(screenPoint.X, screenPoint.Y) - center).Magnitude
-                                if screenDist < shortestDist then
-                                    closest = p
-                                    shortestDist = screenDist
-                                end
+                    local dist3D = (myRoot.Position - root.Position).Magnitude
+                    if dist3D <= maxLockDistance then
+                        local screenPoint, onScreen = aimbotCamera:WorldToViewportPoint(root.Position)
+                        if onScreen then
+                            local screenDist = (Vector2.new(screenPoint.X, screenPoint.Y) - center).Magnitude
+                            if screenDist < shortestDist then
+                                closest = p
+                                shortestDist = screenDist
                             end
                         end
                     end
@@ -756,9 +744,9 @@ local function stopAimbot()
     aimbotStroke = nil
     cleanAimbotEvents()
 end
--- ========== AKHIR AIMBOT SCRIPT (ASLI DARI LO) ==========
+-- ========== AKHIR AIMBOT ==========
 
--- ========== HITBOX SCRIPT ==========
+-- ========== HITBOX SCRIPT (ASLI) ==========
 local PlayersHitbox = game:GetService("Players")
 local LocalPlayerHitbox = PlayersHitbox.LocalPlayer
 local RunServiceHitbox = game:GetService("RunService")
@@ -830,7 +818,7 @@ local function stopExtremeHitbox()
 end
 -- ========== AKHIR HITBOX ==========
 
--- ========== DISABLE SKILLCHECK SCRIPT ==========
+-- ========== DISABLE SKILLCHECK SCRIPT (ASLI) ==========
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local isSkillKillActive = false
 local activeSkillConnections = {}
@@ -898,7 +886,7 @@ survivor:AddSeparator()
 local disableSkillcheck = false
 survivor:AddToggle("DISABLE SKILLCHECK", function(state)
     disableSkillcheck = state
-    if state then enableSkillKill() print("✅ Disable Skillcheck AKTIF") else disableSkillKill() print("❌ Disable Skillcheck NONAKTIF") end
+    if state then enableSkillKill() else disableSkillKill() end
 end)
 
 survivor:AddSeparator()
@@ -906,7 +894,7 @@ survivor:AddSeparator()
 local espPlayer = false
 survivor:AddToggle("ESP PLAYER", function(state)
     espPlayer = state
-    if state then enableESP() print("✅ ESP Player AKTIF") else disableESP() print("❌ ESP Player NONAKTIF") end
+    if state then enableESP() else disableESP() end
 end)
 
 survivor:AddSeparator()
@@ -914,7 +902,7 @@ survivor:AddSeparator()
 local moonwalkState = false
 survivor:AddToggle("MOONWALK", function(state)
     moonwalkState = state
-    if state then startMoonwalkSystem() print("✅ Moonwalk AKTIF - Tekan R / tap tombol R") else stopMoonwalkSystem() print("❌ Moonwalk NONAKTIF") end
+    if state then startMoonwalkSystem() else stopMoonwalkSystem() end
 end)
 
 survivor:AddSeparator()
@@ -922,7 +910,7 @@ survivor:AddSeparator()
 local croushairState = false
 survivor:AddToggle("CROUSHAIR", function(state)
     croushairState = state
-    if state then startCroushair() print("✅ Crosshair AKTIF") else stopCroushair() print("❌ Crosshair NONAKTIF") end
+    if state then startCroushair() else stopCroushair() end
 end)
 
 survivor:AddSeparator()
@@ -930,7 +918,7 @@ survivor:AddSeparator()
 local bypassZoomState = false
 survivor:AddToggle("BYPASS ZOOM", function(state)
     bypassZoomState = state
-    if state then startZoom() print("✅ Bypass Zoom AKTIF") else stopZoom() print("❌ Bypass Zoom NONAKTIF") end
+    if state then startZoom() else stopZoom() end
 end)
 
 -- ========== TAB KILLER ==========
@@ -940,7 +928,7 @@ killer:AddSeparator()
 local aimbotState = false
 killer:AddToggle("AIMBOT", function(state)
     aimbotState = state
-    if state then startAimbot() print("✅ Aimbot AKTIF") else stopAimbot() print("❌ Aimbot NONAKTIF") end
+    if state then startAimbot() else stopAimbot() end
 end)
 
 killer:AddSeparator()
@@ -948,7 +936,7 @@ killer:AddSeparator()
 local hitboxState = false
 killer:AddToggle("HITBOX", function(state)
     hitboxState = state
-    if state then startExtremeHitbox(35) print("✅ Hitbox AKTIF (Size 35)") else stopExtremeHitbox() print("❌ Hitbox NONAKTIF") end
+    if state then startExtremeHitbox(35) else stopExtremeHitbox() end
 end)
 
 -- ========== TAB MISC ==========
@@ -1003,7 +991,7 @@ other:AddSeparator()
 local walkSpeedToggleState = false
 other:AddToggle("WALK SPEED", function(state)
     walkSpeedToggleState = state
-    if state then startWalkSpeed(walkSpeedValue) print("✅ Walk Speed AKTIF") else stopWalkSpeed() print("❌ Walk Speed NONAKTIF") end
+    if state then startWalkSpeed(walkSpeedValue) else stopWalkSpeed() end
 end)
 
 other:AddSlider("Speed Value", 16, 250, 16, function(val)
@@ -1019,7 +1007,7 @@ other:AddSeparator()
 local noclipState = false
 other:AddToggle("NO CLIP", function(state)
     noclipState = state
-    if state then startNoclip() print("✅ NO CLIP AKTIF") else stopNoclip() print("❌ NO CLIP NONAKTIF") end
+    if state then startNoclip() else stopNoclip() end
 end)
 
 -- ========== TAB INFO ==========
@@ -1054,17 +1042,3 @@ info:AddSeparator()
 info:AddButton("Tutup Menu", function()
     DemoxLib:ToggleGUI()
 end)
-
--- ============================================
--- PRINT READY
--- ============================================
-print("✅ GUI Violence District - FINAL VERSION READY!")
-print("")
-print("📋 DAFTAR TAB & TOGGLE:")
-print("   🏃 SURVIVOR (5 toggle): DISABLE SKILLCHECK, ESP PLAYER, MOONWALK, CROUSHAIR, BYPASS ZOOM")
-print("   🔪 KILLER (2 toggle): AIMBOT, HITBOX")
-print("   ⚙️ MISC (2 toggle): FULLBRIGHT, REMOVE FOG")
-print("   🛠️ OTHER (2 toggle + 1 slider): WALK SPEED, NO CLIP")
-print("   ℹ️ INFO")
-print("")
-print("✅ Klik tombol ⚡ di pojok kiri bawah buka menu")
