@@ -1,0 +1,342 @@
+-- ===== MOBILEUI LIBRARY v1.0 =====
+-- Lightweight UI framework for Roblox mobile exploits
+-- Size: ~6 KB, 50-60 FPS on mobile
+
+local MobileUI = {}
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+
+-- Private variables
+local _elements = {}
+local _tabs = {}
+local _currentTab = nil
+local _currentTabIndex = nil
+local _visible = false
+local _screen = {X = 0, Y = 0}
+local _contentY = 0
+local _tabButtons = {}
+local _tabTexts = {}
+
+-- Update screen size
+local function updateScreen()
+    local cam = workspace.CurrentCamera
+    _screen.X = cam.ViewportSize.X
+    _screen.Y = cam.ViewportSize.Y
+end
+updateScreen()
+
+RunService.RenderStepped:Connect(updateScreen)
+
+-- ===== DRAWING OBJECTS (PRIVATE) =====
+local _components = {
+    ToggleButton = nil,
+    MainFrame = nil,
+    FrameBorder = nil,
+    TitleBar = nil,
+    TitleText = nil,
+    CloseBtn = nil,
+    CloseIcon = nil,
+    LeftPanel = nil,
+    RightPanel = nil
+}
+
+-- ===== CREATE DRAWING OBJECTS =====
+local function createObjects()
+    -- Toggle button (buka/tutup)
+    _components.ToggleButton = Drawing.new("Square")
+    _components.ToggleButton.Filled = true
+    _components.ToggleButton.Color = 0xFF222222
+    _components.ToggleButton.Position = Vector2.new(20, 20)
+    _components.ToggleButton.Size = Vector2.new(50, 50)
+    _components.ToggleButton.Thickness = 2
+    _components.ToggleButton.Transparency = 0.8
+    _components.ToggleButton.Visible = true
+    
+    _components.ToggleIcon = Drawing.new("Text")
+    _components.ToggleIcon.Text = "⚙"
+    _components.ToggleIcon.Size = 28
+    _components.ToggleIcon.Color = 0xFFFFFFFF
+    _components.ToggleIcon.Position = Vector2.new(35, 28)
+    _components.ToggleIcon.Visible = true
+    _components.ToggleIcon.Center = true
+    
+    -- Main frame
+    _components.MainFrame = Drawing.new("Square")
+    _components.MainFrame.Filled = true
+    _components.MainFrame.Color = 0xFF0A0A0A
+    _components.MainFrame.Thickness = 1
+    _components.MainFrame.Transparency = 0.95
+    _components.MainFrame.Visible = false
+    
+    _components.FrameBorder = Drawing.new("Square")
+    _components.FrameBorder.Filled = false
+    _components.FrameBorder.Color = 0xFF3333FF
+    _components.FrameBorder.Thickness = 2
+    _components.FrameBorder.Visible = false
+    
+    _components.TitleBar = Drawing.new("Square")
+    _components.TitleBar.Filled = true
+    _components.TitleBar.Color = 0xFF1A1A2E
+    _components.TitleBar.Visible = false
+    
+    _components.TitleText = Drawing.new("Text")
+    _components.TitleText.Text = "SUXANOX UI"
+    _components.TitleText.Size = 16
+    _components.TitleText.Color = 0xFF3333FF
+    _components.TitleText.Visible = false
+    
+    _components.CloseBtn = Drawing.new("Square")
+    _components.CloseBtn.Filled = true
+    _components.CloseBtn.Color = 0xFF333333
+    _components.CloseBtn.Size = Vector2.new(30, 30)
+    _components.CloseBtn.Visible = false
+    
+    _components.CloseIcon = Drawing.new("Text")
+    _components.CloseIcon.Text = "✕"
+    _components.CloseIcon.Size = 18
+    _components.CloseIcon.Color = 0xFFFF5555
+    _components.CloseIcon.Visible = false
+    
+    _components.LeftPanel = Drawing.new("Square")
+    _components.LeftPanel.Filled = true
+    _components.LeftPanel.Color = 0xFF111118
+    _components.LeftPanel.Visible = false
+    
+    _components.RightPanel = Drawing.new("Square")
+    _components.RightPanel.Filled = true
+    _components.RightPanel.Color = 0xFF0D0D12
+    _components.RightPanel.Visible = false
+end
+
+-- ===== UPDATE POSITIONS =====
+local function updatePositions()
+    _components.MainFrame.Size = Vector2.new(_screen.X - 100, _screen.Y - 100)
+    _components.MainFrame.Position = Vector2.new(50, 50)
+    
+    _components.FrameBorder.Size = Vector2.new(_screen.X - 100, _screen.Y - 100)
+    _components.FrameBorder.Position = Vector2.new(50, 50)
+    
+    _components.TitleBar.Size = Vector2.new(_screen.X - 100, 40)
+    _components.TitleBar.Position = Vector2.new(50, 50)
+    
+    _components.TitleText.Position = Vector2.new(70, 58)
+    
+    _components.CloseBtn.Position = Vector2.new(_screen.X - 110, 55)
+    _components.CloseIcon.Position = Vector2.new(_screen.X - 98, 60)
+    
+    _components.LeftPanel.Size = Vector2.new(150, _screen.Y - 140)
+    _components.LeftPanel.Position = Vector2.new(50, 90)
+    
+    _components.RightPanel.Size = Vector2.new(_screen.X - 250, _screen.Y - 140)
+    _components.RightPanel.Position = Vector2.new(200, 90)
+    
+    -- Update tab buttons positions
+    for i, btn in pairs(_tabButtons) do
+        local yPos = 100 + (i - 1) * 50
+        btn.Position = Vector2.new(55, yPos)
+        if _tabTexts[i] then
+            _tabTexts[i].Position = Vector2.new(90, yPos + 13)
+        end
+    end
+end
+
+-- ===== SHOW/HIDE GUI =====
+local function showGUI()
+    _visible = true
+    _components.MainFrame.Visible = true
+    _components.FrameBorder.Visible = true
+    _components.TitleBar.Visible = true
+    _components.TitleText.Visible = true
+    _components.CloseBtn.Visible = true
+    _components.CloseIcon.Visible = true
+    _components.LeftPanel.Visible = true
+    _components.RightPanel.Visible = true
+    
+    for _, btn in pairs(_tabButtons) do
+        btn.Visible = true
+    end
+    for _, txt in pairs(_tabTexts) do
+        txt.Visible = true
+    end
+    
+    _contentY = 110
+    updatePositions()
+end
+
+local function hideGUI()
+    _visible = false
+    _components.MainFrame.Visible = false
+    _components.FrameBorder.Visible = false
+    _components.TitleBar.Visible = false
+    _components.TitleText.Visible = false
+    _components.CloseBtn.Visible = false
+    _components.CloseIcon.Visible = false
+    _components.LeftPanel.Visible = false
+    _components.RightPanel.Visible = false
+    
+    for _, btn in pairs(_tabButtons) do
+        btn.Visible = false
+    end
+    for _, txt in pairs(_tabTexts) do
+        txt.Visible = false
+    end
+    
+    -- Hide all elements
+    for _, element in pairs(_elements) do
+        if element.Main then element.Main.Visible = false end
+        if element.Label then element.Label.Visible = false end
+        if element.Handle then element.Handle.Visible = false end
+        if element.Fill then element.Fill.Visible = false end
+    end
+end
+
+-- ===== SETUP TOGGLE BUTTON =====
+local function setupToggleButton()
+    _components.ToggleButton.InputBegan = function(input)
+        if input.UserInputType == Enum.UserInputType.Touch then
+            _components.ToggleButton.Color = 0xFF444444
+            task.wait(0.05)
+            _components.ToggleButton.Color = 0xFF222222
+            
+            if _visible then
+                hideGUI()
+            else
+                showGUI()
+            end
+        end
+    end
+    
+    _components.CloseBtn.InputBegan = function(input)
+        if input.UserInputType == Enum.UserInputType.Touch and _visible then
+            _components.CloseBtn.Color = 0xFF555555
+            task.wait(0.05)
+            _components.CloseBtn.Color = 0xFF333333
+            hideGUI()
+        end
+    end
+end
+
+-- ===== PUBLIC METHODS =====
+
+-- Create Window (inisialisasi)
+function MobileUI:CreateWindow(title)
+    createObjects()
+    setupToggleButton()
+    _components.TitleText.Text = title or "SUXANOX UI"
+    return self
+end
+
+-- Create Tab
+function MobileUI:CreateTab(name)
+    local index = #_tabButtons + 1
+    local yPos = 100 + (index - 1) * 50
+    
+    local tabBtn = Drawing.new("Square")
+    tabBtn.Filled = true
+    tabBtn.Color = 0xFF1A1A2E
+    tabBtn.Size = Vector2.new(140, 40)
+    tabBtn.Position = Vector2.new(55, yPos)
+    tabBtn.Visible = false
+    tabBtn.Thickness = 0
+    
+    local tabText = Drawing.new("Text")
+    tabText.Text = name
+    tabText.Size = 12
+    tabText.Color = 0xFFFFFFFF
+    tabText.Position = Vector2.new(90, yPos + 13)
+    tabText.Visible = false
+    
+    _tabButtons[index] = tabBtn
+    _tabTexts[index] = tabText
+    _tabs[index] = {
+        Name = name,
+        Button = tabBtn,
+        Text = tabText,
+        Elements = {}
+    }
+    
+    -- Tab click handler
+    tabBtn.InputBegan = function(input)
+        if input.UserInputType == Enum.UserInputType.Touch and _visible then
+            -- Reset previous tab
+            if _currentTabIndex then
+                for _, element in pairs(_tabs[_currentTabIndex].Elements) do
+                    if element.Main then element.Main.Visible = false end
+                    if element.Label then element.Label.Visible = false end
+                    if element.Handle then element.Handle.Visible = false end
+                    if element.Fill then element.Fill.Visible = false end
+                    if element.Selected then element.Selected.Visible = false end
+                    if element.Arrow then element.Arrow.Visible = false end
+                end
+                _tabButtons[_currentTabIndex].Color = 0xFF1A1A2E
+                _tabTexts[_currentTabIndex].Color = 0xFFFFFFFF
+            end
+            
+            -- Activate new tab
+            _currentTabIndex = index
+            _currentTab = _tabs[index]
+            _tabButtons[index].Color = 0xFF3333AA
+            _tabTexts[index].Color = 0xFFFFFFFF
+            
+            -- Show elements
+            for _, element in pairs(_currentTab.Elements) do
+                if element.Main then element.Main.Visible = true end
+                if element.Label then element.Label.Visible = true end
+                if element.Handle then element.Handle.Visible = true end
+                if element.Fill then element.Fill.Visible = true end
+                if element.Selected then element.Selected.Visible = true end
+                if element.Arrow then element.Arrow.Visible = true end
+            end
+        end
+    end
+    
+    -- Auto select first tab
+    if index == 1 then
+        tabBtn.Color = 0xFF3333AA
+        _currentTabIndex = 1
+        _currentTab = _tabs[1]
+    end
+    
+    return index
+end
+
+-- Internal: get current content Y position
+function MobileUI:GetContentY()
+    return _contentY
+end
+
+-- Internal: increment content Y
+function MobileUI:IncContentY(amount)
+    _contentY = _contentY + amount
+end
+
+-- Internal: reset content Y
+function MobileUI:ResetContentY()
+    _contentY = 110
+end
+
+-- Internal: check if visible
+function MobileUI:IsVisible()
+    return _visible
+end
+
+-- Get screen width
+function MobileUI:ScreenWidth()
+    return _screen.X
+end
+
+-- Get screen height
+function MobileUI:ScreenHeight()
+    return _screen.Y
+end
+
+-- Register element to tab
+function MobileUI:RegisterElement(tabIndex, element)
+    if _tabs[tabIndex] then
+        table.insert(_tabs[tabIndex].Elements, element)
+    end
+end
+
+return MobileUI
