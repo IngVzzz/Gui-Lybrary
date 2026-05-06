@@ -480,40 +480,89 @@ local function disableESP()
 end
 -- ========== AKHIR ESP ==========
 
--- ========== AIMBOT SCRIPT (SIMPLE VERSION) ==========
-local PlayersAimbot = game:GetService("Players")
-local LocalPlayerAimbot = PlayersAimbot.LocalPlayer
-local RunServiceAimbot = game:GetService("RunService")
+-- ========== AIMBOT SCRIPT (ASLI DARI LO, GAK GUE UBAH) ==========
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local CoreGui = game:GetService("CoreGui")
+
 local aimbotCamera = workspace.CurrentCamera
 local aimbotEnabled = false
 local currentTarget = nil
 local maxLockDistance = 35
 local SMOOTHNESS = 0.85
+
+local aimbotActiveConnections = {}
+local aimbotUIConnections = {}
+local aimbotButton = nil
+local aimbotStroke = nil
+local aimbotScreenGui = nil
+local lastTargetUpdate = 0
 local renderAimbotConnection = nil
+
+local function cleanAimbotUIEvents()
+    for _, conn in pairs(aimbotUIConnections) do
+        pcall(function() conn:Disconnect() end)
+    end
+    aimbotUIConnections = {}
+end
+
+local function cleanAimbotEvents()
+    for _, conn in pairs(aimbotActiveConnections) do
+        pcall(function() conn:Disconnect() end)
+    end
+    aimbotActiveConnections = {}
+    
+    cleanAimbotUIEvents()
+    
+    if renderAimbotConnection then
+        pcall(function() renderAimbotConnection:Disconnect() end)
+        renderAimbotConnection = nil
+    end
+end
+
+local function lockMouse()
+    pcall(function()
+        UserInputService.MouseBehavior = Enum.MouseBehavior.LockCenter
+        UserInputService.MouseIconEnabled = false
+    end)
+end
+
+local function unlockMouse()
+    pcall(function()
+        UserInputService.MouseBehavior = Enum.MouseBehavior.Default
+        UserInputService.MouseIconEnabled = true
+    end)
+end
 
 local function getClosestTarget()
     if not aimbotCamera then return nil end
-    local closest, shortestDist = nil, math.huge
+    local closest = nil
+    local shortestDist = math.huge
     local center = aimbotCamera.ViewportSize / 2
-    local myChar = LocalPlayerAimbot.Character
+    local myChar = LocalPlayer.Character
     if not myChar then return nil end
     local myRoot = myChar:FindFirstChild("HumanoidRootPart")
     if not myRoot then return nil end
-    for _, p in pairs(PlayersAimbot:GetPlayers()) do
-        if p ~= LocalPlayerAimbot then
+    
+    for _, p in pairs(Players:GetPlayers()) do
+        if p ~= LocalPlayer then
             local char = p.Character
             if char then
                 local root = char:FindFirstChild("HumanoidRootPart")
                 local hum = char:FindFirstChild("Humanoid")
-                if root and hum and hum.Health > 0 and p.Team and p.Team.Name == "Survivors" then
-                    local dist3D = (myRoot.Position - root.Position).Magnitude
-                    if dist3D <= maxLockDistance then
-                        local screenPoint, onScreen = aimbotCamera:WorldToViewportPoint(root.Position)
-                        if onScreen then
-                            local screenDist = (Vector2.new(screenPoint.X, screenPoint.Y) - center).Magnitude
-                            if screenDist < shortestDist then
-                                closest = p
-                                shortestDist = screenDist
+                if root and hum and hum.Health > 0 then
+                    if p.Team and p.Team.Name == "Survivors" then
+                        local dist3D = (myRoot.Position - root.Position).Magnitude
+                        if dist3D <= maxLockDistance then
+                            local screenPoint, onScreen = aimbotCamera:WorldToViewportPoint(root.Position)
+                            if onScreen then
+                                local screenDist = (Vector2.new(screenPoint.X, screenPoint.Y) - center).Magnitude
+                                if screenDist < shortestDist then
+                                    closest = p
+                                    shortestDist = screenDist
+                                end
                             end
                         end
                     end
@@ -524,13 +573,129 @@ local function getClosestTarget()
     return closest
 end
 
-local function setupAimbotRenderStepped()
-    if renderAimbotConnection then renderAimbotConnection:Disconnect() end
-    renderAimbotConnection = RunServiceAimbot.RenderStepped:Connect(function()
-        if not aimbotEnabled or not aimbotCamera then return end
-        if not currentTarget or not currentTarget.Character or not currentTarget.Character:FindFirstChild("HumanoidRootPart") then
-            currentTarget = getClosestTarget()
+local function UpdateAimbotButtonUI()
+    if not aimbotButton then return end
+    pcall(function()
+        if aimbotEnabled then
+            aimbotButton.BackgroundColor3 = Color3.fromRGB(100, 255, 100)
+            aimbotButton.BackgroundTransparency = 0.3
+            if aimbotStroke then aimbotStroke.Color = Color3.fromRGB(100, 255, 100) end
+        else
+            aimbotButton.BackgroundColor3 = Color3.fromRGB(255, 80, 80)
+            aimbotButton.BackgroundTransparency = 0.15
+            if aimbotStroke then aimbotStroke.Color = Color3.fromRGB(255, 100, 100) end
         end
+    end)
+end
+
+local function CreateAimbotGUI()
+    cleanAimbotUIEvents()
+    
+    local existingGui = CoreGui:FindFirstChild("SimpleAimbot")
+    if existingGui then
+        pcall(function() existingGui:Destroy() end)
+    end
+    
+    aimbotScreenGui = Instance.new("ScreenGui")
+    aimbotScreenGui.Name = "SimpleAimbot"
+    aimbotScreenGui.Parent = CoreGui
+
+    aimbotButton = Instance.new("ImageButton")
+    aimbotButton.Size = UDim2.new(0, 50, 0, 50)
+    aimbotButton.Position = UDim2.new(1, -210, 1, -420)
+    aimbotButton.AnchorPoint = Vector2.new(1, 1)
+    aimbotButton.BackgroundColor3 = aimbotEnabled and Color3.fromRGB(100, 255, 100) or Color3.fromRGB(255, 80, 80)
+    aimbotButton.BackgroundTransparency = aimbotEnabled and 0.3 or 0.15
+    aimbotButton.Image = "rbxassetid://3926305904"
+    aimbotButton.ImageColor3 = Color3.fromRGB(255, 255, 255)
+    aimbotButton.ImageTransparency = 0.2
+    aimbotButton.Parent = aimbotScreenGui
+
+    local corner = Instance.new("UICorner", aimbotButton)
+    corner.CornerRadius = UDim.new(1, 0)
+    
+    aimbotStroke = Instance.new("UIStroke", aimbotButton)
+    aimbotStroke.Color = aimbotEnabled and Color3.fromRGB(100, 255, 100) or Color3.fromRGB(255, 100, 100)
+    aimbotStroke.Thickness = 2
+    aimbotStroke.Transparency = 0.5
+
+    local dragging = false
+    local dragStart = nil
+    local startPos = nil
+
+    local beganConn = aimbotButton.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = true
+            dragStart = input.Position
+            startPos = aimbotButton.Position
+        end
+    end)
+    table.insert(aimbotUIConnections, beganConn)
+
+    local endedConn = aimbotButton.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = false
+        end
+    end)
+    table.insert(aimbotUIConnections, endedConn)
+
+    local changedConn = aimbotButton.InputChanged:Connect(function(input)
+        if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+            local delta = input.Position - dragStart
+            aimbotButton.Position = UDim2.new(
+                startPos.X.Scale, 
+                startPos.X.Offset + delta.X,
+                startPos.Y.Scale,
+                startPos.Y.Offset + delta.Y
+            )
+        end
+    end)
+    table.insert(aimbotUIConnections, changedConn)
+
+    local clickConn = aimbotButton.MouseButton1Click:Connect(function()
+        if dragging then
+            dragging = false
+            return
+        end
+        
+        aimbotEnabled = not aimbotEnabled
+        if aimbotEnabled then
+            lockMouse()
+            currentTarget = getClosestTarget()
+        else
+            unlockMouse()
+            currentTarget = nil
+        end
+        UpdateAimbotButtonUI()
+    end)
+    table.insert(aimbotUIConnections, clickConn)
+end
+
+local function setupAimbotRenderStepped()
+    if renderAimbotConnection then
+        for i = #aimbotActiveConnections, 1, -1 do
+            if aimbotActiveConnections[i] == renderAimbotConnection then
+                table.remove(aimbotActiveConnections, i)
+            end
+        end
+        pcall(function() renderAimbotConnection:Disconnect() end)
+        renderAimbotConnection = nil
+    end
+    
+    renderAimbotConnection = RunService.RenderStepped:Connect(function()
+        if not aimbotEnabled then return end
+        if not aimbotCamera then return end
+        
+        local now = tick()
+        if now - lastTargetUpdate >= 0.1 then
+            lastTargetUpdate = now
+            if not currentTarget then
+                currentTarget = getClosestTarget()
+            elseif currentTarget and (not currentTarget.Character or not currentTarget.Character:FindFirstChild("HumanoidRootPart")) then
+                currentTarget = getClosestTarget()
+            end
+        end
+        
         if currentTarget and currentTarget.Character then
             local root = currentTarget.Character:FindFirstChild("HumanoidRootPart")
             if root then
@@ -539,26 +704,59 @@ local function setupAimbotRenderStepped()
             else
                 currentTarget = nil
             end
+        else
+            currentTarget = nil
         end
     end)
+    table.insert(aimbotActiveConnections, renderAimbotConnection)
+end
+
+local function setupAimbotCameraHandler()
+    local cameraConn = workspace.Changed:Connect(function()
+        if workspace.CurrentCamera then
+            aimbotCamera = workspace.CurrentCamera
+        end
+    end)
+    table.insert(aimbotActiveConnections, cameraConn)
 end
 
 local function startAimbot()
     if aimbotEnabled then return end
-    aimbotEnabled = true
+    
+    if aimbotScreenGui then
+        pcall(function() aimbotScreenGui:Destroy() end)
+        aimbotScreenGui = nil
+    end
+    cleanAimbotEvents()
+    
+    aimbotEnabled = false
     aimbotCamera = workspace.CurrentCamera
+    CreateAimbotGUI()
     setupAimbotRenderStepped()
-    print("✅ Aimbot AKTIF")
+    setupAimbotCameraHandler()
+    
+    if aimbotScreenGui then
+        aimbotScreenGui.Enabled = true
+    end
 end
 
 local function stopAimbot()
-    if not aimbotEnabled then return end
-    aimbotEnabled = false
-    currentTarget = nil
-    if renderAimbotConnection then renderAimbotConnection:Disconnect() renderAimbotConnection = nil end
-    print("❌ Aimbot NONAKTIF")
+    if aimbotEnabled then
+        aimbotEnabled = false
+        unlockMouse()
+        currentTarget = nil
+    end
+    
+    if aimbotScreenGui then
+        pcall(function() aimbotScreenGui:Destroy() end)
+        aimbotScreenGui = nil
+    end
+    
+    aimbotButton = nil
+    aimbotStroke = nil
+    cleanAimbotEvents()
 end
--- ========== AKHIR AIMBOT ==========
+-- ========== AKHIR AIMBOT SCRIPT (ASLI DARI LO) ==========
 
 -- ========== HITBOX SCRIPT ==========
 local PlayersHitbox = game:GetService("Players")
