@@ -758,7 +758,7 @@ local LocalPlayerHitbox = PlayersHitbox.LocalPlayer
 local RunServiceHitbox = game:GetService("RunService")
 
 local extremeHitboxActive = false
-local hitboxSize = 35
+local hitboxSize = 40
 local originalSizes = {}
 local updateInterval = 0.3
 local timer = 0
