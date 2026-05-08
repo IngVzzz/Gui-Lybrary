@@ -752,95 +752,218 @@ local function stopAimbot()
 end
 -- ========== AKHIR AIMBOT ==========
 
--- ========== HITBOX SCRIPT (ASLI) ==========
-local PlayersHitbox = game:GetService("Players")
-local LocalPlayerHitbox = PlayersHitbox.LocalPlayer
-local RunServiceHitbox = game:GetService("RunService")
+-- ========== HITBOX SCRIPT (VERSI BARU) ==========
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local RunService = game:GetService("RunService")
 
-local extremeHitboxActive = false
-local hitboxSize = 40
-local originalSizes = {}
-local updateInterval = 0.3
-local timer = 0
-local renderHitboxConn = nil
+local hitboxPlayers = Players
+local hitboxRunService = RunService
+local hitboxLocalPlayer = LocalPlayer
 
-local bodyParts = {"HumanoidRootPart", "Head", "UpperTorso", "LowerTorso", "LeftArm", "RightArm", "LeftLeg", "RightLeg"}
+local HITBOX_Size = 55
+local OriginalHitboxSizes = {}
+local hitboxActive = false
+local hitboxUpdateTimer = 0
+local hitboxActiveConnections = {}
+local hitboxPlayerCharacterConns = {}
 
-local function isSurvivorHitbox(player) return player ~= LocalPlayerHitbox and player.Team and player.Team.Name == "Survivors" end
-local function saveOriginalSizeHitbox(part, player) local key = player .. "_" .. part.Name if not originalSizes[key] then originalSizes[key] = {Size = part.Size, CanCollide = part.CanCollide} end end
-local function expandPartHitbox(part, player) if not part or not part.Parent then return end saveOriginalSizeHitbox(part, player) pcall(function() part.Size = Vector3.new(hitboxSize, hitboxSize, hitboxSize) part.CanCollide = false end) end
-local function resetPartHitbox(part, player) if not part then return end local key = player .. "_" .. part.Name local original = originalSizes[key] if original then pcall(function() part.Size = original.Size part.CanCollide = original.CanCollide end) originalSizes[key] = nil end end
-
-local function expandPlayerHitbox(player)
-    if not isSurvivorHitbox(player) then return end
-    local char = player.Character
-    if not char then return end
-    local hum = char:FindFirstChild("Humanoid")
-    if not hum or hum.Health <= 0 then return end
-    for _, partName in pairs(bodyParts) do local part = char:FindFirstChild(partName) if part then expandPartHitbox(part, player) end end
+local function safeDisconnectHitbox(conn)
+    pcall(function() if conn then conn:Disconnect() end end)
 end
 
-local function resetPlayerHitbox(player)
+local function clearHitboxPlayerConns()
+    for player, conn in pairs(hitboxPlayerCharacterConns) do
+        safeDisconnectHitbox(conn)
+    end
+    hitboxPlayerCharacterConns = {}
+end
+
+local function clearHitboxConnections()
+    for _, conn in pairs(hitboxActiveConnections) do
+        safeDisconnectHitbox(conn)
+    end
+    hitboxActiveConnections = {}
+    clearHitboxPlayerConns()
+end
+
+local function IsSurvivor(player)
+    if player == hitboxLocalPlayer then return false end
+    if not player.Team then return false end
+    return player.Team.Name == "Survivors"
+end
+
+local function ResetHitbox(player)
     if not player then return end
+    local orig = OriginalHitboxSizes[player]
+    if orig and player.Character then
+        local root = player.Character:FindFirstChild("HumanoidRootPart")
+        if root then
+            pcall(function()
+                root.Size = orig
+                root.CanCollide = true
+            end)
+        end
+    end
+    OriginalHitboxSizes[player] = nil
+end
+
+local function ResetAllHitbox()
+    for p, origSize in pairs(OriginalHitboxSizes) do
+        if p and p.Character then
+            local root = p.Character:FindFirstChild("HumanoidRootPart")
+            if root then
+                pcall(function()
+                    root.Size = origSize
+                    root.CanCollide = true
+                end)
+            end
+        end
+    end
+    OriginalHitboxSizes = {}
+end
+
+local function ExpandHitbox(player)
+    if not hitboxActive then return end
+    if not player or player == hitboxLocalPlayer then return end
+    if not IsSurvivor(player) then return end
+    
     local char = player.Character
     if not char then return end
-    for _, partName in pairs(bodyParts) do local part = char:FindFirstChild(partName) if part then resetPartHitbox(part, player) end end
+    
+    local root = char:FindFirstChild("HumanoidRootPart")
+    local hum = char:FindFirstChildOfClass("Humanoid")
+    if not root or not hum or hum.Health <= 0 then
+        ResetHitbox(player)
+        return
+    end
+    
+    if not OriginalHitboxSizes[player] then
+        OriginalHitboxSizes[player] = root.Size
+        pcall(function()
+            root.Size = Vector3.new(HITBOX_Size, HITBOX_Size, HITBOX_Size)
+            root.CanCollide = false
+        end)
+    end
 end
 
-local function resetAllHitboxes()
-    for key, _ in pairs(originalSizes) do local playerName = string.match(key, "([^_]+)") local plr = PlayersHitbox:FindFirstChild(playerName) if plr then resetPlayerHitbox(plr) end end
-    originalSizes = {}
+local function UpdateAllHitboxes()
+    for _, p in pairs(hitboxPlayers:GetPlayers()) do
+        if p ~= hitboxLocalPlayer then
+            ExpandHitbox(p)
+        end
+    end
 end
 
-local function updateAllHitboxes()
-    for _, player in pairs(PlayersHitbox:GetPlayers()) do if isSurvivorHitbox(player) then expandPlayerHitbox(player) end end
+local function enableHitbox()
+    if hitboxActive then return end
+    hitboxActive = true
+    UpdateAllHitboxes()
 end
 
-local function setupHitboxRender()
-    if renderHitboxConn then renderHitboxConn:Disconnect() end
-    renderHitboxConn = RunServiceHitbox.RenderStepped:Connect(function(dt)
-        if not extremeHitboxActive then return end
-        timer = timer + dt
-        if timer >= updateInterval then timer = 0 updateAllHitboxes() end
+local function disableHitbox()
+    if not hitboxActive then return end
+    hitboxActive = false
+    ResetAllHitbox()
+    clearHitboxConnections()
+end
+
+local function BindHitboxPlayerEvents(player)
+    if player == hitboxLocalPlayer then return end
+    
+    if hitboxPlayerCharacterConns[player] then
+        safeDisconnectHitbox(hitboxPlayerCharacterConns[player])
+        hitboxPlayerCharacterConns[player] = nil
+    end
+    
+    local conn = player.CharacterAdded:Connect(function()
+        task.wait(0.3)
+        ExpandHitbox(player)
     end)
+    hitboxPlayerCharacterConns[player] = conn
+    table.insert(hitboxActiveConnections, conn)
 end
 
-local function startExtremeHitbox(size)
-    if size then hitboxSize = size end
-    if extremeHitboxActive then return end
-    extremeHitboxActive = true
-    updateAllHitboxes()
-    setupHitboxRender()
-    PlayersHitbox.PlayerAdded:Connect(function(player) player.CharacterAdded:Connect(function() task.wait(0.2) if extremeHitboxActive and isSurvivorHitbox(player) then expandPlayerHitbox(player) end end) end)
-    for _, player in pairs(PlayersHitbox:GetPlayers()) do if player ~= LocalPlayerHitbox then player.CharacterAdded:Connect(function() task.wait(0.2) if extremeHitboxActive and isSurvivorHitbox(player) then expandPlayerHitbox(player) end end) end end
+local function BindAllExistingHitboxPlayers()
+    for _, p in pairs(hitboxPlayers:GetPlayers()) do
+        if p ~= hitboxLocalPlayer then
+            ExpandHitbox(p)
+            BindHitboxPlayerEvents(p)
+            task.wait(0.05)
+        end
+    end
 end
 
-local function stopExtremeHitbox()
-    if not extremeHitboxActive then return end
-    extremeHitboxActive = false
-    if renderHitboxConn then renderHitboxConn:Disconnect() renderHitboxConn = nil end
-    resetAllHitboxes()
-    timer = 0
+local function setupHitboxConnections()
+    clearHitboxConnections()
+    
+    local renderConn = hitboxRunService.RenderStepped:Connect(function(dt)
+        if not hitboxActive then return end
+        
+        hitboxUpdateTimer = hitboxUpdateTimer + dt
+        if hitboxUpdateTimer >= 0.25 then
+            hitboxUpdateTimer = 0
+            UpdateAllHitboxes()
+        end
+    end)
+    table.insert(hitboxActiveConnections, renderConn)
+    
+    local playerAddedConn = hitboxPlayers.PlayerAdded:Connect(function(player)
+        BindHitboxPlayerEvents(player)
+    end)
+    table.insert(hitboxActiveConnections, playerAddedConn)
+    
+    local playerRemovingConn = hitboxPlayers.PlayerRemoving:Connect(function(player)
+        ResetHitbox(player)
+        if hitboxPlayerCharacterConns[player] then
+            safeDisconnectHitbox(hitboxPlayerCharacterConns[player])
+            hitboxPlayerCharacterConns[player] = nil
+        end
+    end)
+    table.insert(hitboxActiveConnections, playerRemovingConn)
+end
+
+local function startHitbox()
+    if hitboxActive then return end
+    setupHitboxConnections()
+    BindAllExistingHitboxPlayers()
+    hitboxActive = true
+end
+
+local function stopHitbox()
+    disableHitbox()
 end
 -- ========== AKHIR HITBOX ==========
 
--- ========== DISABLE SKILLCHECK SCRIPT (ASLI) ==========
+-- ========== DISABLE SKILLCHECK SCRIPT (VERSI BARU) ==========
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local PlayersSkill = game:GetService("Players")
+local LocalPlayerSkill = PlayersSkill.LocalPlayer
+
 local isSkillKillActive = false
 local activeSkillConnections = {}
 
-local function safeDisconnectSkill(conn) pcall(function() if conn then conn:Disconnect() end end) end
-local function clearSkillConnections() for _, conn in pairs(activeSkillConnections) do safeDisconnectSkill(conn) end activeSkillConnections = {} end
+local function safeDisconnectSkill(conn)
+    pcall(function() if conn then conn:Disconnect() end end)
+end
+
+local function clearAllSkillConnections()
+    for _, conn in pairs(activeSkillConnections) do
+        safeDisconnectSkill(conn)
+    end
+    activeSkillConnections = {}
+end
 
 local function DestroyAllSkillChecks()
     local Remotes = ReplicatedStorage:FindFirstChild("Remotes")
     if not Remotes then return end
+    
     for _, folderName in pairs({"Healing", "Generator"}) do
         local folder = Remotes:FindFirstChild(folderName)
         if folder then
-            for _, remoteName in pairs({"SkillCheckResultEvent", "SkillCheckFailEvent"}) do
-                local remote = folder:FindFirstChild(remoteName)
-                if remote then pcall(function() remote:Destroy() end) end
+            local skillCheck = folder:FindFirstChild("SkillCheckEvent")
+            if skillCheck then
+                pcall(function() skillCheck:Destroy() end)
             end
         end
     end
@@ -850,16 +973,15 @@ local function enableSkillKill()
     if isSkillKillActive then return end
     isSkillKillActive = true
     DestroyAllSkillChecks()
+    
     local remotes = ReplicatedStorage:FindFirstChild("Remotes")
     if remotes then
         for _, folderName in pairs({"Healing", "Generator"}) do
             local folder = remotes:FindFirstChild(folderName)
             if folder then
                 local conn = folder.ChildAdded:Connect(function(child)
-                    if isSkillKillActive then
-                        for _, remoteName in pairs({"SkillCheckResultEvent", "SkillCheckFailEvent"}) do
-                            if child.Name == remoteName then pcall(function() child:Destroy() end) end
-                        end
+                    if child.Name == "SkillCheckEvent" and isSkillKillActive then
+                        pcall(function() child:Destroy() end)
                     end
                 end)
                 table.insert(activeSkillConnections, conn)
@@ -871,7 +993,7 @@ end
 local function disableSkillKill()
     if not isSkillKillActive then return end
     isSkillKillActive = false
-    clearSkillConnections()
+    clearAllSkillConnections()
 end
 -- ========== AKHIR DISABLE SKILLCHECK ==========
 
