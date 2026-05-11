@@ -405,7 +405,7 @@ end
 -- ========== ESP PLAYER SCRIPT (ASLI) ==========
 local PlayersESP = game:GetService("Players")
 local LocalPlayerESP = PlayersESP.LocalPlayer
-local ESP = { Players = { ["Killer"] = {Color = Color3.fromRGB(255, 0, 0), On = true}, ["Survivor"] = {Color = Color3.fromRGB(0, 255, 255), On = true} } }
+local ESP = { Players = { ["Killer"] = {Color = Color3.fromRGB(255, 0, 0), On = true}, ["Survivor"] = {Color = Color3.fromRGB(0, 163, 222), On = true} } }
 local isESPActive, espConnections, playerConnections = false, {}, {}
 
 local function safeDisconnectESP(conn) pcall(function() if conn then conn:Disconnect() end end) end
