@@ -1,9 +1,3 @@
--- ============================================
--- DEMOX GUI - VIOLENCE DISTRICT
--- FINAL VERSION (ALL ORIGINAL SCRIPTS)
--- By Demox_Ai'CvA057xp
--- ============================================
-
 local DemoxLib = loadstring(game:HttpGet("https://raw.githubusercontent.com/IngVzzz/Gui-Lybrary/refs/heads/main/project%20lybrary"))()
 DemoxLib:Init("VIOLENCE DISTRICT 🩸")
 
@@ -402,11 +396,12 @@ local function stopMoonwalkSystem()
 end
 -- ========== AKHIR MOONWALK ==========
 
--- ========== ESP PLAYER SCRIPT (ASLI) ==========
+-- ========== ESP PLAYER SCRIPT (STABILIZED) ==========
 local PlayersESP = game:GetService("Players")
 local LocalPlayerESP = PlayersESP.LocalPlayer
-local ESP = { Players = { ["Killer"] = {Color = Color3.fromRGB(255, 0, 0), On = true}, ["Survivor"] = {Color = Color3.fromRGB(0, 163, 222), On = true} } }
+local ESP = { Players = { ["Killer"] = {Color = Color3.fromRGB(255, 0, 0), On = true}, ["Survivor"] = {Color = Color3.fromRGB(64, 224, 255), On = true} } }
 local isESPActive, espConnections, playerConnections = false, {}, {}
+local characterUpdateQueue = {} -- throttle queue
 
 local function safeDisconnectESP(conn) pcall(function() if conn then conn:Disconnect() end end) end
 local function clearESPConnections()
@@ -416,9 +411,14 @@ local function clearESPConnections()
     playerConnections = {}
 end
 
-local function RemoveHighlight(char) if not char then return end local h = char:FindFirstChild("ESP_Highlight") if h then h:Destroy() end end
+local function RemoveHighlight(char)
+    if not char or not char.Parent then return end
+    local h = char:FindFirstChild("ESP_Highlight")
+    if h then h:Destroy() end
+end
+
 local function ApplyHighlight(char, color)
-    if not char or not color then return end
+    if not char or not char.Parent or not color then return end
     local existing = char:FindFirstChild("ESP_Highlight")
     if existing and existing.FillColor == color then return end
     if existing then existing:Destroy() end
@@ -427,13 +427,17 @@ local function ApplyHighlight(char, color)
     h.FillColor = color
     h.OutlineColor = color
     h.FillTransparency = 0.85
-    h.OutlineTransparency = 0.3
+    h.OutlineTransparency = 0.35
     h.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
     h.Parent = char
 end
 
 local function UpdateSinglePlayer(player)
-    if not isESPActive or player == LocalPlayerESP or not player.Character or not player.Team then return end
+    if not isESPActive or player == LocalPlayerESP then return end
+    if not player.Character or not player.Team then 
+        if player.Character then RemoveHighlight(player.Character) end
+        return 
+    end
     local teamName = player.Team.Name
     local color = nil
     if teamName == "Killer" and ESP.Players["Killer"].On then color = ESP.Players["Killer"].Color
@@ -441,18 +445,30 @@ local function UpdateSinglePlayer(player)
     if color then ApplyHighlight(player.Character, color) else RemoveHighlight(player.Character) end
 end
 
+-- throttle untuk CharacterAdded
+local function ThrottledUpdate(player)
+    if characterUpdateQueue[player] then return end
+    characterUpdateQueue[player] = true
+    task.wait(0.2)
+    characterUpdateQueue[player] = nil
+    if isESPActive then UpdateSinglePlayer(player) end
+end
+
 local function BindPlayerEvents(player)
     if player == LocalPlayerESP then return end
     if playerConnections[player] then safeDisconnectESP(playerConnections[player]) end
-    local conn = player.CharacterAdded:Connect(function() task.wait(0.3) if isESPActive then UpdateSinglePlayer(player) end end)
+    local conn = player.CharacterAdded:Connect(function() ThrottledUpdate(player) end)
     playerConnections[player] = conn
-    table.insert(espConnections, conn)
 end
 
 local function setupESPConnections()
     clearESPConnections()
-    local playerAddedConn = PlayersESP.PlayerAdded:Connect(function(player) BindPlayerEvents(player) task.wait(0.2) if isESPActive then UpdateSinglePlayer(player) end end)
+    local playerAddedConn = PlayersESP.PlayerAdded:Connect(function(player) 
+        BindPlayerEvents(player) 
+        ThrottledUpdate(player)
+    end)
     table.insert(espConnections, playerAddedConn)
+    
     local playerRemovingConn = PlayersESP.PlayerRemoving:Connect(function(player)
         if player.Character then RemoveHighlight(player.Character) end
         if playerConnections[player] then safeDisconnectESP(playerConnections[player]) playerConnections[player] = nil end
@@ -464,17 +480,27 @@ local function enableESP()
     if isESPActive then return end
     isESPActive = true
     setupESPConnections()
-    for _, p in pairs(PlayersESP:GetPlayers()) do if p ~= LocalPlayerESP then BindPlayerEvents(p) end end
-    for _, p in pairs(PlayersESP:GetPlayers()) do if p ~= LocalPlayerESP then UpdateSinglePlayer(p) end end
+    local players = PlayersESP:GetPlayers()
+    for i = 1, #players do
+        local p = players[i]
+        if p ~= LocalPlayerESP then 
+            BindPlayerEvents(p)
+            UpdateSinglePlayer(p)
+        end
+    end
 end
 
 local function disableESP()
     if not isESPActive then return end
     isESPActive = false
     clearESPConnections()
-    for _, p in pairs(PlayersESP:GetPlayers()) do if p.Character then RemoveHighlight(p.Character) end end
+    local players = PlayersESP:GetPlayers()
+    for i = 1, #players do
+        if players[i].Character then RemoveHighlight(players[i].Character) end
+    end
+    characterUpdateQueue = {}
 end
--- ========== AKHIR ESP ==========
+-- ========== AKHIR ESP (STABIL) ==========
 
 -- ========== AIMBOT SCRIPT (VERSI BARU) ==========
 local PlayersService = game:GetService("Players")
@@ -752,7 +778,7 @@ local function stopAimbot()
 end
 -- ========== AKHIR AIMBOT ==========
 
--- ========== HITBOX SCRIPT (VERSI BARU) ==========
+-- ========== HITBOX SCRIPT (STABILIZED) ==========
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local RunService = game:GetService("RunService")
@@ -761,7 +787,7 @@ local hitboxPlayers = Players
 local hitboxRunService = RunService
 local hitboxLocalPlayer = LocalPlayer
 
-local HITBOX_Size = 55
+local HITBOX_Size = 45
 local OriginalHitboxSizes = {}
 local hitboxActive = false
 local hitboxUpdateTimer = 0
@@ -798,7 +824,7 @@ local function ResetHitbox(player)
     local orig = OriginalHitboxSizes[player]
     if orig and player.Character then
         local root = player.Character:FindFirstChild("HumanoidRootPart")
-        if root then
+        if root and root.Size == Vector3.new(HITBOX_Size, HITBOX_Size, HITBOX_Size) then
             pcall(function()
                 root.Size = orig
                 root.CanCollide = true
@@ -812,7 +838,7 @@ local function ResetAllHitbox()
     for p, origSize in pairs(OriginalHitboxSizes) do
         if p and p.Character then
             local root = p.Character:FindFirstChild("HumanoidRootPart")
-            if root then
+            if root and root.Size == Vector3.new(HITBOX_Size, HITBOX_Size, HITBOX_Size) then
                 pcall(function()
                     root.Size = origSize
                     root.CanCollide = true
@@ -838,13 +864,17 @@ local function ExpandHitbox(player)
         return
     end
     
-    if not OriginalHitboxSizes[player] then
-        OriginalHitboxSizes[player] = root.Size
-        pcall(function()
-            root.Size = Vector3.new(HITBOX_Size, HITBOX_Size, HITBOX_Size)
-            root.CanCollide = false
-        end)
+    -- Cek apakah sudah di-expand
+    if OriginalHitboxSizes[player] then 
+        -- Already expanded, skip
+        return 
     end
+    
+    OriginalHitboxSizes[player] = root.Size
+    pcall(function()
+        root.Size = Vector3.new(HITBOX_Size, HITBOX_Size, HITBOX_Size)
+        root.CanCollide = false
+    end)
 end
 
 local function UpdateAllHitboxes()
@@ -853,19 +883,6 @@ local function UpdateAllHitboxes()
             ExpandHitbox(p)
         end
     end
-end
-
-local function enableHitbox()
-    if hitboxActive then return end
-    hitboxActive = true
-    UpdateAllHitboxes()
-end
-
-local function disableHitbox()
-    if not hitboxActive then return end
-    hitboxActive = false
-    ResetAllHitbox()
-    clearHitboxConnections()
 end
 
 local function BindHitboxPlayerEvents(player)
@@ -877,21 +894,11 @@ local function BindHitboxPlayerEvents(player)
     end
     
     local conn = player.CharacterAdded:Connect(function()
-        task.wait(0.3)
+        task.wait(0.2)
         ExpandHitbox(player)
     end)
     hitboxPlayerCharacterConns[player] = conn
     table.insert(hitboxActiveConnections, conn)
-end
-
-local function BindAllExistingHitboxPlayers()
-    for _, p in pairs(hitboxPlayers:GetPlayers()) do
-        if p ~= hitboxLocalPlayer then
-            ExpandHitbox(p)
-            BindHitboxPlayerEvents(p)
-            task.wait(0.05)
-        end
-    end
 end
 
 local function setupHitboxConnections()
@@ -899,9 +906,8 @@ local function setupHitboxConnections()
     
     local renderConn = hitboxRunService.RenderStepped:Connect(function(dt)
         if not hitboxActive then return end
-        
         hitboxUpdateTimer = hitboxUpdateTimer + dt
-        if hitboxUpdateTimer >= 0.25 then
+        if hitboxUpdateTimer >= 0.3 then  -- turunin frekuensi dari 0.25 ke 0.3
             hitboxUpdateTimer = 0
             UpdateAllHitboxes()
         end
@@ -909,7 +915,9 @@ local function setupHitboxConnections()
     table.insert(hitboxActiveConnections, renderConn)
     
     local playerAddedConn = hitboxPlayers.PlayerAdded:Connect(function(player)
+        task.wait(0.1)
         BindHitboxPlayerEvents(player)
+        ExpandHitbox(player)
     end)
     table.insert(hitboxActiveConnections, playerAddedConn)
     
@@ -923,19 +931,26 @@ local function setupHitboxConnections()
     table.insert(hitboxActiveConnections, playerRemovingConn)
 end
 
-local function startHitbox()
+-- MAIN FUNCTIONS (FIXED)
+local function enableHitbox()
     if hitboxActive then return end
     setupHitboxConnections()
-    BindAllExistingHitboxPlayers()
+    UpdateAllHitboxes()
     hitboxActive = true
 end
 
-local function stopHitbox()
-    disableHitbox()
+local function disableHitbox()
+    if not hitboxActive then return end
+    hitboxActive = false
+    ResetAllHitbox()
+    clearHitboxConnections()
 end
--- ========== AKHIR HITBOX ==========
 
--- ========== DISABLE SKILLCHECK SCRIPT (VERSI BARU) ==========
+-- Hapus fungsi duplikat
+-- startHitbox() dan stopHitbox() dihapus, pakai enableHitbox/disableHitbox aja
+-- ========== AKHIR HITBOX (STABIL) ==========
+
+-- ========== DISABLE SKILLCHECK SCRIPT (STABILIZED - NO FUNCTION CHANGE) ==========
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local PlayersSkill = game:GetService("Players")
 local LocalPlayerSkill = PlayersSkill.LocalPlayer
@@ -962,7 +977,7 @@ local function DestroyAllSkillChecks()
         local folder = Remotes:FindFirstChild(folderName)
         if folder then
             local skillCheck = folder:FindFirstChild("SkillCheckEvent")
-            if skillCheck then
+            if skillCheck and skillCheck.Parent then  -- tambah cek Parent biar aman
                 pcall(function() skillCheck:Destroy() end)
             end
         end
@@ -980,7 +995,7 @@ local function enableSkillKill()
             local folder = remotes:FindFirstChild(folderName)
             if folder then
                 local conn = folder.ChildAdded:Connect(function(child)
-                    if child.Name == "SkillCheckEvent" and isSkillKillActive then
+                    if child.Name == "SkillCheckEvent" and isSkillKillActive and child.Parent then  -- tambah cek Parent
                         pcall(function() child:Destroy() end)
                     end
                 end)
